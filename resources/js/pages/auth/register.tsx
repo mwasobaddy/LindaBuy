@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useRef } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import PhoneInput from '@/components/phone-input';
@@ -15,6 +16,8 @@ type Props = {
 };
 
 export default function Register({ passwordRules }: Props) {
+    const formRef = useRef<HTMLFormElement>(null);
+
     return (
         <>
             <Head title="Register" />
@@ -23,15 +26,10 @@ export default function Register({ passwordRules }: Props) {
                 resetOnSuccess={['password', 'password_confirmation']}
                 disableWhileProcessing
                 className="flex flex-col gap-6"
+                ref={formRef}
             >
-                {({ processing, errors, data }) => {
-                    const hasValidationErrors = Object.keys(errors).length > 0;
-                    const isFormValid =
-                        data.name &&
-                        data.phone &&
-                        data.password &&
-                        data.password_confirmation &&
-                        !hasValidationErrors;
+                {({ processing, errors }) => {
+                    const isFormValid = formRef.current?.checkValidity() ?? false;
 
                     return (
                     <>
