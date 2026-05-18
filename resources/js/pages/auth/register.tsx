@@ -75,7 +75,7 @@ export default function Register({ passwordRules }: Props) {
                                     autoComplete="tel"
                                     name="phone"
                                     value={phone}
-                                    onChange={(e) => setPhone(e.target.value)}
+                                    onChange={setPhone}
                                 />
                                 <InputError message={errors.phone} />
                             </div>

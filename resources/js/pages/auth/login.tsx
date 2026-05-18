@@ -57,7 +57,7 @@ export default function Login({
                                     tabIndex={1}
                                     autoComplete="tel"
                                     value={phone}
-                                    onChange={(e) => setPhone(e.target.value)}
+                                    onChange={setPhone}
                                 />
                                 <InputError message={errors.phone} />
                             </div>
