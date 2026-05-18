@@ -1,5 +1,4 @@
 import { Form, Head } from '@inertiajs/react';
-import { useRef } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import PhoneInput from '@/components/phone-input';
@@ -24,8 +23,6 @@ export default function Login({
     canResetPassword,
     canRegister,
 }: Props) {
-    const formRef = useRef<HTMLFormElement>(null);
-
     return (
         <>
             <Head title="Log in" />
@@ -34,10 +31,9 @@ export default function Login({
                 {...store.form()}
                 resetOnSuccess={['password']}
                 className="flex flex-col gap-6"
-                ref={formRef}
             >
                 {({ processing, errors }) => {
-                    const isFormValid = formRef.current?.checkValidity() ?? false;
+                    const hasErrors = Object.keys(errors).length > 0;
 
                     return (
                     <>
@@ -93,7 +89,7 @@ export default function Login({
                                 variant="submit"
                                 className="mt-4 w-full"
                                 tabIndex={4}
-                                disabled={!isFormValid || processing}
+                                disabled={hasErrors || processing}
                                 data-test="login-button"
                             >
                                 {processing && <Spinner />}
