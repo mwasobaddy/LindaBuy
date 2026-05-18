@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import PhoneInput from '@/components/phone-input';
@@ -23,6 +24,16 @@ export default function Login({
     canResetPassword,
     canRegister,
 }: Props) {
+    const [phone, setPhone] = useState('');
+    const [password, setPassword] = useState('');
+
+    const validatePhone = (value: string): boolean => {
+        const digits = value.replace(/\D/g, '');
+        return digits.length === 9 && (digits[0] === '1' || digits[0] === '7');
+    };
+
+    const isFormValid = validatePhone(phone) && password.length > 0;
+
     return (
         <>
             <Head title="Log in" />
@@ -33,8 +44,6 @@ export default function Login({
                 className="flex flex-col gap-6"
             >
                 {({ processing, errors }) => {
-                    const hasErrors = Object.keys(errors).length > 0;
-
                     return (
                     <>
                         <div className="grid gap-6">
@@ -47,6 +56,8 @@ export default function Login({
                                     autoFocus
                                     tabIndex={1}
                                     autoComplete="tel"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
                                 />
                                 <InputError message={errors.phone} />
                             </div>
@@ -71,6 +82,8 @@ export default function Login({
                                     tabIndex={2}
                                     autoComplete="current-password"
                                     placeholder="Password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                 />
                                 <InputError message={errors.password} />
                             </div>
@@ -89,7 +102,7 @@ export default function Login({
                                 variant="submit"
                                 className="mt-4 w-full"
                                 tabIndex={4}
-                                disabled={hasErrors || processing}
+                                disabled={!isFormValid || processing}
                                 data-test="login-button"
                             >
                                 {processing && <Spinner />}

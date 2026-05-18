@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import PhoneInput from '@/components/phone-input';
@@ -15,6 +16,23 @@ type Props = {
 };
 
 export default function Register({ passwordRules }: Props) {
+    const [name, setName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [password, setPassword] = useState('');
+    const [passwordConfirmation, setPasswordConfirmation] = useState('');
+
+    const validatePhone = (value: string): boolean => {
+        const digits = value.replace(/\D/g, '');
+        return digits.length === 9 && (digits[0] === '1' || digits[0] === '7');
+    };
+
+    const isFormValid =
+        name.length > 0 &&
+        validatePhone(phone) &&
+        password.length > 0 &&
+        passwordConfirmation.length > 0 &&
+        password === passwordConfirmation;
+
     return (
         <>
             <Head title="Register" />
@@ -25,8 +43,6 @@ export default function Register({ passwordRules }: Props) {
                 className="flex flex-col gap-6"
             >
                 {({ processing, errors }) => {
-                    const hasErrors = Object.keys(errors).length > 0;
-
                     return (
                     <>
                         <div className="grid gap-6">
@@ -41,6 +57,8 @@ export default function Register({ passwordRules }: Props) {
                                     autoComplete="name"
                                     name="name"
                                     placeholder="Full name"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
                                 />
                                 <InputError
                                     message={errors.name}
@@ -56,6 +74,8 @@ export default function Register({ passwordRules }: Props) {
                                     tabIndex={2}
                                     autoComplete="tel"
                                     name="phone"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
                                 />
                                 <InputError message={errors.phone} />
                             </div>
@@ -70,6 +90,8 @@ export default function Register({ passwordRules }: Props) {
                                     name="password"
                                     placeholder="Password"
                                     passwordrules={passwordRules}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                 />
                                 <InputError message={errors.password} />
                             </div>
@@ -86,6 +108,8 @@ export default function Register({ passwordRules }: Props) {
                                     name="password_confirmation"
                                     placeholder="Confirm password"
                                     passwordrules={passwordRules}
+                                    value={passwordConfirmation}
+                                    onChange={(e) => setPasswordConfirmation(e.target.value)}
                                 />
                                 <InputError
                                     message={errors.password_confirmation}
@@ -97,7 +121,7 @@ export default function Register({ passwordRules }: Props) {
                                 variant="submit"
                                 className="mt-2 w-full"
                                 tabIndex={5}
-                                disabled={hasErrors || processing}
+                                disabled={!isFormValid || processing}
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner />}
