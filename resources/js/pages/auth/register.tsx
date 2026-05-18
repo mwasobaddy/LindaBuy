@@ -24,7 +24,16 @@ export default function Register({ passwordRules }: Props) {
                 disableWhileProcessing
                 className="flex flex-col gap-6"
             >
-                {({ processing, errors }) => (
+                {({ processing, errors, data }) => {
+                    const hasValidationErrors = Object.keys(errors).length > 0;
+                    const isFormValid =
+                        data.name &&
+                        data.phone &&
+                        data.password &&
+                        data.password_confirmation &&
+                        !hasValidationErrors;
+
+                    return (
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
@@ -91,8 +100,10 @@ export default function Register({ passwordRules }: Props) {
 
                             <Button
                                 type="submit"
+                                variant="submit"
                                 className="mt-2 w-full"
                                 tabIndex={5}
+                                disabled={!isFormValid || processing}
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner />}
@@ -107,7 +118,8 @@ export default function Register({ passwordRules }: Props) {
                             </TextLink>
                         </div>
                     </>
-                )}
+                );
+                }}
             </Form>
         </>
     );

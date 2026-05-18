@@ -32,7 +32,11 @@ export default function Login({
                 resetOnSuccess={['password']}
                 className="flex flex-col gap-6"
             >
-                {({ processing, errors }) => (
+                {({ processing, errors, data }) => {
+                    const hasValidationErrors = Object.keys(errors).length > 0;
+                    const isFormValid = data.phone && data.password && !hasValidationErrors;
+
+                    return (
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
@@ -83,9 +87,10 @@ export default function Login({
 
                             <Button
                                 type="submit"
+                                variant="submit"
                                 className="mt-4 w-full"
                                 tabIndex={4}
-                                disabled={processing}
+                                disabled={!isFormValid || processing}
                                 data-test="login-button"
                             >
                                 {processing && <Spinner />}
@@ -102,7 +107,8 @@ export default function Login({
                             </div>
                         )}
                     </>
-                )}
+                );
+                }}
             </Form>
 
             {status && (
