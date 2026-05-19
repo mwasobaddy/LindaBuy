@@ -14,6 +14,15 @@ class KycVerification extends Model
     /** @use HasFactory<KycVerificationFactory> */
     use HasFactory;
 
+    protected function casts(): array
+    {
+        return [
+            'submitted_at' => 'datetime',
+            'approved_at' => 'datetime',
+            'rejected_at' => 'datetime',
+        ];
+    }
+
     /**
      * Get the user this KYC verification belongs to.
      */

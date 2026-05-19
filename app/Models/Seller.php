@@ -14,6 +14,14 @@ class Seller extends Model
     /** @use HasFactory<SellerFactory> */
     use HasFactory;
 
+    protected function casts(): array
+    {
+        return [
+            'approved_at' => 'datetime',
+            'rejected_at' => 'datetime',
+        ];
+    }
+
     /**
      * Get the user who owns this shop.
      */

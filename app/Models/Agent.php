@@ -14,6 +14,14 @@ class Agent extends Model
     /** @use HasFactory<AgentFactory> */
     use HasFactory;
 
+    protected function casts(): array
+    {
+        return [
+            'approved_at' => 'datetime',
+            'rejected_at' => 'datetime',
+        ];
+    }
+
     /**
      * Get the user who is this agent.
      */
