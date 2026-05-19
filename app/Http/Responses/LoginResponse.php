@@ -2,8 +2,8 @@
 
 namespace App\Http\Responses;
 
+use App\ApiResponse;
 use App\Services\OtpService;
-use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Fortify;
@@ -16,7 +16,7 @@ class LoginResponse implements LoginResponseContract
         $user = $request->user();
 
         if ($request->wantsJson()) {
-            return new JsonResponse(['two_factor' => false], 200);
+            return ApiResponse::success(['two_factor' => false]);
         }
 
         if ($user && ! $user->hasVerifiedMobile()) {

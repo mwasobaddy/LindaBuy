@@ -2,7 +2,7 @@
 
 namespace App\Http\Responses;
 
-use Illuminate\Http\JsonResponse;
+use App\ApiResponse;
 use Inertia\Inertia;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,7 +12,7 @@ class RegisterResponse implements RegisterResponseContract
     public function toResponse($request): Response
     {
         if ($request->wantsJson()) {
-            return new JsonResponse(['two_factor' => false], 201);
+            return ApiResponse::created(['two_factor' => false]);
         }
 
         $phone = $request->user()?->phone;

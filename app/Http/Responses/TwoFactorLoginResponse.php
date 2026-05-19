@@ -2,7 +2,7 @@
 
 namespace App\Http\Responses;
 
-use Illuminate\Http\JsonResponse;
+use App\ApiResponse;
 use Illuminate\Support\Facades\URL;
 use Laravel\Fortify\Contracts\TwoFactorLoginResponse as TwoFactorLoginResponseContract;
 use Laravel\Fortify\Fortify;
@@ -13,7 +13,7 @@ class TwoFactorLoginResponse implements TwoFactorLoginResponseContract
     public function toResponse($request): Response
     {
         if ($request->wantsJson()) {
-            return new JsonResponse(['two_factor' => false], 200);
+            return ApiResponse::success(['two_factor' => false]);
         }
 
         $user = $request->user();

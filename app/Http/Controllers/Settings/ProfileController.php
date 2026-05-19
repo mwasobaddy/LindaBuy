@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
@@ -40,7 +41,7 @@ class ProfileController extends Controller
         $request->user()->save();
 
         if ($request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => 'Profile updated.']);
+            return ApiResponse::success([], 'Profile updated.');
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Profile updated.')]);
@@ -63,7 +64,7 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         if ($request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => 'Account deleted.']);
+            return ApiResponse::deleted('Account deleted.');
         }
 
         return redirect('/');

@@ -32,6 +32,8 @@ class CreateNewUser implements CreatesNewUsers
                 'password' => $input['password'],
             ]);
 
+            $user->assignRole('buyer');
+
             $otp = $this->otpService->generate($user, 'phone_verification');
             $this->otpService->send($user->phone, $otp);
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Responses\OtpSentResponse;
 use App\Http\Responses\OtpVerifiedResponse;
@@ -55,7 +56,7 @@ class OtpController extends Controller
         $user = User::where('phone', $phone)->first();
 
         if (! $user) {
-            return response()->json(['success' => false, 'message' => 'No account found with this number']);
+            return ApiResponse::notFound('No account found with this number');
         }
 
         Log::info('OTP send (login)', ['phone' => $phone, 'user_id' => $user->id]);
@@ -91,9 +92,18 @@ class OtpController extends Controller
 
         if (! $result['success']) {
             return response()->json([
-                'success' => false,
-                'reason' => $result['reason'],
-                'remaining' => $result['remaining'] ?? null,
+                'errors' => [['field' => 'otp', 'message' => match ($result['reason']) {
+                    'no_otp' => 'No verification code found. Request a new one.',
+                    'expired' => 'This code has expired. Request a new one.',
+                    'max_attempts' => 'Too many incorrect attempts. Request a new code.',
+                    'invalid' => 'Incorrect code. '.($result['remaining'] ?? 0).' attempt(s) remaining.',
+                    default => 'Verification failed. Please try again.',
+                }]],
+                'meta' => array_filter([
+                    'code' => strtoupper((string) $result['reason']),
+                    'reason' => $result['reason'],
+                    'remaining' => $result['remaining'] ?? null,
+                ]),
             ], 422);
         }
 

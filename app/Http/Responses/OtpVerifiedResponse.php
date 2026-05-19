@@ -2,8 +2,8 @@
 
 namespace App\Http\Responses;
 
+use App\ApiResponse;
 use Illuminate\Contracts\Support\Responsable;
-use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -17,10 +17,7 @@ readonly class OtpVerifiedResponse implements Responsable
     public function toResponse($request): Response
     {
         if ($request->wantsJson()) {
-            return new JsonResponse([
-                'success' => true,
-                'redirect' => $this->redirect,
-            ]);
+            return ApiResponse::success(['redirect' => $this->redirect]);
         }
 
         Inertia::flash('toast', [

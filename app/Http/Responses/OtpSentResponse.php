@@ -2,8 +2,8 @@
 
 namespace App\Http\Responses;
 
+use App\ApiResponse;
 use Illuminate\Contracts\Support\Responsable;
-use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 readonly class OtpSentResponse implements Responsable
@@ -16,13 +16,9 @@ readonly class OtpSentResponse implements Responsable
     public function toResponse($request): Response
     {
         if ($request->wantsJson()) {
-            $data = ['success' => true, 'message' => $this->message];
+            $data = $this->redirect ? ['redirect' => $this->redirect] : [];
 
-            if ($this->redirect) {
-                $data['redirect'] = $this->redirect;
-            }
-
-            return new JsonResponse($data);
+            return ApiResponse::success($data, $this->message);
         }
 
         if ($this->redirect) {

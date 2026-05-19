@@ -2,8 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\ApiResponse;
 use Closure;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -16,10 +16,7 @@ class EnsureMobileIsVerified
         }
 
         if ($request->wantsJson()) {
-            return new JsonResponse([
-                'success' => false,
-                'message' => 'Mobile number not verified.',
-            ], 403);
+            return ApiResponse::forbidden('Mobile number not verified.');
         }
 
         if ($request->user()) {
