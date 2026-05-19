@@ -19,5 +19,5 @@ test('new users can register', function () {
     $this->assertAuthenticated();
     $user = User::where('phone', '712345678')->first();
     $this->assertNotNull($user);
-    $response->assertRedirect(route('dashboard'));
+    $response->assertRedirect('/auth/otp-verify');
 });
