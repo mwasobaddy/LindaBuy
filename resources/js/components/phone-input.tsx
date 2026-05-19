@@ -3,6 +3,8 @@ import { forwardRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
+type NativeOnChange = ComponentProps<'input'>['onChange'];
+
 interface PhoneInputProps
     extends Omit<ComponentProps<'input'>, 'type' | 'onChange'> {
     onChange?: (value: string) => void;
@@ -13,29 +15,21 @@ const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
         const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             let input = e.target.value;
 
-            // Remove non-digits
             input = input.replace(/\D/g, '');
 
-            // Only allow first digit to be 1 or 7
             if (input.length > 0 && !/^[17]/.test(input)) {
                 input = '';
             }
 
-            // Limit to 9 digits
             if (input.length > 9) {
                 input = input.slice(0, 9);
             }
 
-            // Update the underlying input value
             e.target.value = input;
 
-            // Trigger onChange if provided
             if (onChange) {
                 onChange(input);
             }
-
-            // Also call the original onChange if it exists in props
-            props.onChange?.(e);
         };
 
         return (
