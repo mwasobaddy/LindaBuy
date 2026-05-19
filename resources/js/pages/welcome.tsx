@@ -7,7 +7,7 @@ export default function Welcome({
     canRegister?: boolean;
 }) {
     const { auth, currentTeam } = usePage().props;
-    const dashboardUrl = currentTeam ? dashboard(currentTeam.slug) : '/';
+    const dashboardUrl = currentTeam ? dashboard() : '/dashboard';
 
     return (
         <>

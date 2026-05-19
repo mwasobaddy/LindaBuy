@@ -21,7 +21,13 @@ declare module '@inertiajs/core' {
     export interface InertiaConfig {
         sharedPageProps: {
             name: string;
-            auth: Auth;
+            auth: Auth & {
+                user?: Auth['user'] & {
+                    role?: string;
+                    permissions?: string[];
+                    is_admin?: boolean;
+                };
+            };
             sidebarOpen: boolean;
             currentTeam: Team | null;
             teams: Team[];

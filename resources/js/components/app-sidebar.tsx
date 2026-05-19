@@ -1,5 +1,11 @@
-import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import {
+    BookOpen,
+    FolderGit2,
+    LayoutGrid,
+    ShieldCheck,
+    Users,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -17,7 +23,15 @@ import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
 export function AppSidebar() {
-    const dashboardUrl = '/';
+    const { auth } = usePage().props;
+    const user = auth?.user as {
+        role?: string;
+        permissions?: string[];
+        is_admin?: boolean;
+    } | undefined;
+    const permissions = user?.permissions ?? [];
+    const isAdmin = user?.is_admin ?? false;
+    const dashboardUrl = dashboard();
 
     const mainNavItems: NavItem[] = [
         {
@@ -26,6 +40,21 @@ export function AppSidebar() {
             icon: LayoutGrid,
         },
     ];
+
+    if (isAdmin || permissions.includes('approve-sellers') || permissions.includes('approve-agents')) {
+        mainNavItems.push(
+            {
+                title: 'Sellers',
+                href: '/admin/sellers/pending',
+                icon: ShieldCheck,
+            },
+            {
+                title: 'Agents',
+                href: '/admin/agents/pending',
+                icon: Users,
+            }
+        );
+    }
 
     const footerNavItems: NavItem[] = [
         {
