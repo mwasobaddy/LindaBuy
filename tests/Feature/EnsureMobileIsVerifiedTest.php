@@ -25,8 +25,8 @@ test('api request without verified mobile gets json error', function () {
 
     $response->assertForbidden();
     $response->assertJson([
-        'success' => false,
-        'message' => 'Mobile number not verified.',
+        'errors' => [['field' => null, 'message' => 'Mobile number not verified.']],
+        'meta' => ['code' => 'FORBIDDEN'],
     ]);
 });
 

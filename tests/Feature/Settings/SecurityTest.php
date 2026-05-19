@@ -126,8 +126,8 @@ test('api request can update password and receive json response', function () {
 
     $response->assertOk();
     $response->assertJson([
-        'success' => true,
-        'message' => 'Password updated.',
+        'data' => [],
+        'meta' => ['message' => 'Password updated.'],
     ]);
 
     expect(Hash::check('new-password', $user->refresh()->password))->toBeTrue();

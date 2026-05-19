@@ -53,5 +53,5 @@ test('api request with valid recovery code receives json response after two fact
         ]);
 
     $response->assertOk();
-    $response->assertExactJson(['two_factor' => false]);
+    $response->assertExactJson(['data' => ['two_factor' => false], 'meta' => []]);
 });

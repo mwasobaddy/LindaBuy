@@ -92,8 +92,8 @@ test('api request can update profile and receive json response', function () {
 
     $response->assertOk();
     $response->assertJson([
-        'success' => true,
-        'message' => 'Profile updated.',
+        'data' => [],
+        'meta' => ['message' => 'Profile updated.'],
     ]);
 
     expect($user->refresh()->name)->toBe('API User');
@@ -110,8 +110,8 @@ test('api request can delete account and receive json response', function () {
 
     $response->assertOk();
     $response->assertJson([
-        'success' => true,
-        'message' => 'Account deleted.',
+        'data' => [],
+        'meta' => ['message' => 'Account deleted.'],
     ]);
 
     $this->assertGuest();
