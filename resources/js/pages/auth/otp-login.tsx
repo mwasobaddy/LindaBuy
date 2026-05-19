@@ -48,12 +48,14 @@ export default function OtpLogin({ canRegister }: Props) {
                 body: JSON.stringify({ phone }),
             });
 
-            const data = await response.json();
+            const body = await response.json();
 
-            if (data.success) {
-                router.visit(data.redirect);
+            if (response.ok) {
+                if (body.data?.redirect) {
+                    router.visit(body.data.redirect);
+                }
             } else {
-                setError(data.message || 'Failed to send code');
+                setError(body.errors?.[0]?.message || body.meta?.message || 'Failed to send code');
             }
         } catch {
             setError('Something went wrong. Please try again.');

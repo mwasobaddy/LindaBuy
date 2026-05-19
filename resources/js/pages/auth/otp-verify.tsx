@@ -67,13 +67,13 @@ export default function OtpVerify({ phone, type = 'login', reason }: Props) {
                 body: JSON.stringify({ phone, otp: code, type }),
             });
 
-            const data = await response.json();
+            const body = await response.json();
 
-            if (data.success) {
+            if (response.ok) {
                 toast.success(type === 'login' ? 'Logged in successfully!' : 'Mobile number verified!');
-                router.visit(data.redirect);
+                router.visit(body.data.redirect);
             } else {
-                setError(getErrorMessage(data));
+                setError(body.errors?.[0]?.message || 'Verification failed. Please try again.');
                 setOtp('');
             }
         } catch {
@@ -103,10 +103,10 @@ export default function OtpVerify({ phone, type = 'login', reason }: Props) {
                 body: JSON.stringify({ phone }),
             });
 
-            const data = await response.json();
+            const body = await response.json();
 
-            if (!data.success) {
-                setError(data.message || 'Failed to resend code');
+            if (!response.ok) {
+                setError(body.errors?.[0]?.message || 'Failed to resend code');
                 setCooldown(0);
             }
         } catch {
@@ -121,21 +121,6 @@ export default function OtpVerify({ phone, type = 'login', reason }: Props) {
 
         if (value.length === 6) {
             handleVerify(value);
-        }
-    };
-
-    const getErrorMessage = (data: { reason?: string; remaining?: number }): string => {
-        switch (data.reason) {
-            case 'no_otp':
-                return 'No verification code found. Request a new one.';
-            case 'expired':
-                return 'This code has expired. Request a new one.';
-            case 'max_attempts':
-                return 'Too many incorrect attempts. Request a new code.';
-            case 'invalid':
-                return `Incorrect code. ${data.remaining ?? 0} attempt(s) remaining.`;
-            default:
-                return 'Verification failed. Please try again.';
         }
     };
 
