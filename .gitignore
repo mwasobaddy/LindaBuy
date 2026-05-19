@@ -31,3 +31,4 @@ yarn-error.log
 # Custom ignore rules
 spec.md
 /context/
+/docs/

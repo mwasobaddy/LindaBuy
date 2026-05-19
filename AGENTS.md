@@ -23,26 +23,12 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - pestphp/pest (PEST) - v4
 - phpunit/phpunit (PHPUNIT) - v12
 - @inertiajs/react (INERTIA_REACT) - v3
+- laravel-echo (ECHO) - v2
 - react (REACT) - v19
 - tailwindcss (TAILWINDCSS) - v4
 - @laravel/vite-plugin-wayfinder (WAYFINDER_VITE) - v0
 - eslint (ESLINT) - v9
 - prettier (PRETTIER) - v3
-
-## Application Building Context
-
-Before implementing features or making architectural decisions, read these context files in order. They define the product, architecture, UI conventions, code standards, development workflow, and current progress:
-
-1. `spec.md` — Product specification: features, requirements, workflows, and data model
-2. Context files (when created):
-   - `context/project-overview.md` — Product goals, features, and scope
-   - `context/architecture.md` — System structure, boundaries, and invariants
-   - `context/ui-context.md` — Theme, colors, typography, and components
-   - `context/code-standards.md` — Implementation rules and conventions
-   - `context/ai-workflow-rules.md` — Development workflow and scoping
-   - `context/progress-tracker.md` — Current phase, completed work, and next steps
-
-Update relevant context files after each meaningful implementation change.
 
 ## Skills Activation
 
