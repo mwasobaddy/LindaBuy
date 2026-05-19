@@ -112,3 +112,23 @@ test('correct password must be provided to update password', function () {
         ->assertSessionHasErrors('current_password')
         ->assertRedirect(route('security.edit'));
 });
+
+test('api request can update password and receive json response', function () {
+    $user = User::factory()->create(['mobile_verified_at' => now()]);
+
+    $response = $this
+        ->actingAs($user)
+        ->putJson(route('user-password.update'), [
+            'current_password' => 'password',
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ]);
+
+    $response->assertOk();
+    $response->assertJson([
+        'success' => true,
+        'message' => 'Password updated.',
+    ]);
+
+    expect(Hash::check('new-password', $user->refresh()->password))->toBeTrue();
+});

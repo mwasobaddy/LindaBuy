@@ -11,8 +11,9 @@ test('guests are redirected to the login page', function () {
 });
 
 test('authenticated users can visit the dashboard', function () {
-    $user = User::factory()->create();
-    $team = $user->currentTeam;
+    $user = User::factory()->create([
+        'mobile_verified_at' => now(),
+    ]);
 
     $response = $this
         ->actingAs($user)

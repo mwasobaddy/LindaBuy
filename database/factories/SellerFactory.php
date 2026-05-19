@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Seller;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,7 +19,7 @@ class SellerFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(),
+            'user_id' => User::factory(),
             'shop_name' => fake()->company(),
             'shop_location' => fake()->address(),
             'shop_location_coords_lat' => fake()->latitude(),

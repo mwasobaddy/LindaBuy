@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\KycVerification;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,10 +19,10 @@ class KycVerificationFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(),
+            'user_id' => User::factory(),
             'id_number' => fake()->numberBetween(10000000, 99999999),
-            'kyc_photo_path' => 'kyc-photos/' . fake()->uuid() . '.jpg',
-            'id_copy_path' => 'id-copies/' . fake()->uuid() . '.jpg',
+            'kyc_photo_path' => 'kyc-photos/'.fake()->uuid().'.jpg',
+            'id_copy_path' => 'id-copies/'.fake()->uuid().'.jpg',
             'kyc_status' => 'PENDING',
             'submitted_at' => now(),
         ];

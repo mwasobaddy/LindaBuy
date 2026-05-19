@@ -83,3 +83,41 @@ test('correct password must be provided to delete account', function () {
 
     expect($user->fresh())->not->toBeNull();
 });
+
+test('api request can update profile and receive json response', function () {
+    $user = User::factory()->create(['mobile_verified_at' => now()]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patchJson(route('profile.update'), [
+            'name' => 'API User',
+            'phone' => $user->phone,
+        ]);
+
+    $response->assertOk();
+    $response->assertJson([
+        'success' => true,
+        'message' => 'Profile updated.',
+    ]);
+
+    expect($user->refresh()->name)->toBe('API User');
+});
+
+test('api request can delete account and receive json response', function () {
+    $user = User::factory()->create(['mobile_verified_at' => now()]);
+
+    $response = $this
+        ->actingAs($user)
+        ->deleteJson(route('profile.destroy'), [
+            'password' => 'password',
+        ]);
+
+    $response->assertOk();
+    $response->assertJson([
+        'success' => true,
+        'message' => 'Account deleted.',
+    ]);
+
+    $this->assertGuest();
+    expect($user->fresh())->toBeNull();
+});
