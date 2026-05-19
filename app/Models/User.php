@@ -30,9 +30,20 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'mobile_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function hasVerifiedMobile(): bool
+    {
+        return ! is_null($this->mobile_verified_at);
+    }
+
+    public function markMobileAsVerified(): void
+    {
+        $this->forceFill(['mobile_verified_at' => now()])->save();
     }
 
     /**

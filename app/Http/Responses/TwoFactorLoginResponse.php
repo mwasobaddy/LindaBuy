@@ -12,6 +12,10 @@ class TwoFactorLoginResponse implements TwoFactorLoginResponseContract
 {
     public function toResponse($request): Response
     {
+        if ($request->wantsJson()) {
+            return new JsonResponse(['two_factor' => false], 200);
+        }
+
         $user = $request->user();
         $team = $user?->currentTeam ?? $user?->personalTeam();
 
@@ -21,8 +25,6 @@ class TwoFactorLoginResponse implements TwoFactorLoginResponseContract
 
         URL::defaults(['current_team' => $team->slug]);
 
-        return $request->wantsJson()
-            ? new JsonResponse(['two_factor' => false], 200)
-            : redirect()->intended("/{$team->slug}".Fortify::redirects('login'));
+        return redirect()->intended("/{$team->slug}".Fortify::redirects('login'));
     }
 }

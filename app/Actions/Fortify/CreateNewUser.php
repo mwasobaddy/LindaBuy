@@ -5,6 +5,7 @@ namespace App\Actions\Fortify;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
+use App\Services\OtpService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
@@ -13,16 +14,10 @@ class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules, ProfileValidationRules;
 
-    public function __construct()
-    {
-        //
-    }
+    public function __construct(
+        protected OtpService $otpService
+    ) {}
 
-    /**
-     * Validate and create a newly registered user.
-     *
-     * @param  array<string, string>  $input
-     */
     public function create(array $input): User
     {
         Validator::make($input, [
@@ -36,6 +31,9 @@ class CreateNewUser implements CreatesNewUsers
                 'phone' => $input['phone'],
                 'password' => $input['password'],
             ]);
+
+            $otp = $this->otpService->generate($user, 'phone_verification');
+            $this->otpService->send($user->phone, $otp);
 
             return $user;
         });

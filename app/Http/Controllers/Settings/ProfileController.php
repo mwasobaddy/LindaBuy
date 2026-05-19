@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,7 +29,7 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request): JsonResponse|RedirectResponse
     {
         $request->user()->fill($request->validated());
 
@@ -38,6 +39,10 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Profile updated.']);
+        }
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Profile updated.')]);
 
         return to_route('profile.edit');
@@ -46,7 +51,7 @@ class ProfileController extends Controller
     /**
      * Delete the user's profile.
      */
-    public function destroy(ProfileDeleteRequest $request): RedirectResponse
+    public function destroy(ProfileDeleteRequest $request): JsonResponse|RedirectResponse
     {
         $user = $request->user();
 
@@ -56,6 +61,10 @@ class ProfileController extends Controller
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Account deleted.']);
+        }
 
         return redirect('/');
     }

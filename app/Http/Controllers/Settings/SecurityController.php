@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
 use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -49,11 +50,15 @@ class SecurityController extends Controller implements HasMiddleware
     /**
      * Update the user's password.
      */
-    public function update(PasswordUpdateRequest $request): RedirectResponse
+    public function update(PasswordUpdateRequest $request): JsonResponse|RedirectResponse
     {
         $request->user()->update([
             'password' => $request->password,
         ]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Password updated.']);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Password updated.')]);
 
