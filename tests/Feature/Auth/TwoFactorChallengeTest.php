@@ -23,7 +23,7 @@ test('two factor challenge can be rendered', function () {
     $user = User::factory()->withTwoFactor()->create();
 
     $this->post(route('login'), [
-        'email' => $user->email,
+        'phone' => $user->phone,
         'password' => 'password',
     ]);
 
@@ -43,7 +43,7 @@ test('api request with valid recovery code receives json response after two fact
     $user = User::factory()->withTwoFactor()->create();
 
     $this->post(route('login'), [
-        'email' => $user->email,
+        'phone' => $user->phone,
         'password' => 'password',
     ]);
 
