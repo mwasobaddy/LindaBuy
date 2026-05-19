@@ -24,12 +24,12 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
-        static $phoneCounter = 254700000000;
+        static $phoneCounter = 0;
 
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'phone' => ++$phoneCounter, // Generate unique phone numbers starting from 254700000001
+            'phone' => '7'.str_pad((string) ++$phoneCounter, 8, '0', STR_PAD_LEFT), // e.g. 700000001
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'role' => 'buyer',

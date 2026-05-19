@@ -13,7 +13,7 @@ test('security page is displayed', function () {
         'confirmPassword' => true,
     ]);
 
-    $user = User::factory()->create();
+    $user = User::factory()->create(['mobile_verified_at' => now()]);
 
     $this->actingAs($user)
         ->withSession(['auth.password_confirmed_at' => time()])
@@ -28,7 +28,7 @@ test('security page is displayed', function () {
 test('security page requires password confirmation when enabled', function () {
     $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
 
-    $user = User::factory()->create();
+    $user = User::factory()->create(['mobile_verified_at' => now()]);
 
     Features::twoFactorAuthentication([
         'confirm' => true,
@@ -44,7 +44,7 @@ test('security page requires password confirmation when enabled', function () {
 test('security page does not require password confirmation when disabled', function () {
     $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
 
-    $user = User::factory()->create();
+    $user = User::factory()->create(['mobile_verified_at' => now()]);
 
     Features::twoFactorAuthentication([
         'confirm' => true,
@@ -64,7 +64,7 @@ test('security page renders without two factor when feature is disabled', functi
 
     config(['fortify.features' => []]);
 
-    $user = User::factory()->create();
+    $user = User::factory()->create(['mobile_verified_at' => now()]);
 
     $this->actingAs($user)
         ->get(route('security.edit'))
@@ -78,7 +78,7 @@ test('security page renders without two factor when feature is disabled', functi
 });
 
 test('password can be updated', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['mobile_verified_at' => now()]);
 
     $response = $this
         ->actingAs($user)
@@ -97,7 +97,7 @@ test('password can be updated', function () {
 });
 
 test('correct password must be provided to update password', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['mobile_verified_at' => now()]);
 
     $response = $this
         ->actingAs($user)
