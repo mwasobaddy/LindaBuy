@@ -13,9 +13,22 @@ Route::inertia('/', 'welcome', [
 Route::middleware(['mobile.verified'])->group(function () {
     Route::middleware(['auth', 'verified'])->group(function () {
         Route::inertia('dashboard', 'dashboard')->name('dashboard');
+
+        // Seller upgrade page
+        Route::inertia('seller/request', 'seller/request')->name('seller.request');
+
+        // Agent upgrade page
+        Route::inertia('agent/request', 'agent/request')->name('agent.request');
     });
 
     require __DIR__.'/settings.php';
+});
+
+Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::inertia('sellers/pending', 'sellers/pending')->name('sellers.pending');
+    Route::inertia('sellers/{seller}/review', 'sellers/review')->name('sellers.review');
+    Route::inertia('agents/pending', 'agents/pending')->name('agents.pending');
+    Route::inertia('agents/{agent}/review', 'agents/review')->name('agents.review');
 });
 
 Route::prefix('auth')->name('auth.')->group(function () {
