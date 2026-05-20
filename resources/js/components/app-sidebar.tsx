@@ -4,6 +4,8 @@ import {
     FolderGit2,
     LayoutGrid,
     ShieldCheck,
+    ShoppingCart,
+    FileText,
     Users,
     Wallet,
     Banknote,
@@ -43,6 +45,11 @@ export function AppSidebar() {
             icon: LayoutGrid,
         },
         {
+            title: 'Orders',
+            href: '/orders',
+            icon: ShoppingCart,
+        },
+        {
             title: 'Wallet',
             href: '/wallet',
             icon: Wallet,
@@ -54,6 +61,20 @@ export function AppSidebar() {
             title: 'Withdrawals',
             href: '/seller/withdrawals',
             icon: Banknote,
+        });
+
+        mainNavItems.push({
+            title: 'Templates',
+            href: '/seller/templates',
+            icon: FileText,
+        });
+    }
+
+    if (role === 'agent:approved' || permissions.includes('verify-orders')) {
+        mainNavItems.push({
+            title: 'Agent Dashboard',
+            href: '/agent/dashboard',
+            icon: ShieldCheck,
         });
     }
 

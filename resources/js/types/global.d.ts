@@ -35,6 +35,9 @@ declare module '@inertiajs/core' {
             recent_transactions?: unknown[];
             receivable_balance?: number;
             withdrawals?: unknown[];
+            orders?: unknown[];
+            order?: unknown;
+            templates?: unknown[];
             [key: string]: unknown;
         };
     }
