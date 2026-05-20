@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['user_id', 'shop_name', 'shop_location', 'shop_location_coords_lat', 'shop_location_coords_lng', 'verification_status', 'approved_at', 'rejected_at', 'rejected_reason'])]
 class Seller extends Model
@@ -28,5 +29,21 @@ class Seller extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Orders placed with this seller.
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Order templates for this seller.
+     */
+    public function orderTemplates(): HasMany
+    {
+        return $this->hasMany(OrderTemplate::class);
     }
 }

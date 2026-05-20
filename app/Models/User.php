@@ -69,4 +69,20 @@ class User extends Authenticatable
     {
         return $this->hasOne(Agent::class);
     }
+
+    /**
+     * Orders where this user is the buyer.
+     */
+    public function ordersAsBuyer(): HasMany
+    {
+        return $this->hasMany(Order::class, 'buyer_id');
+    }
+
+    /**
+     * Chat messages sent by this user.
+     */
+    public function chatMessages(): HasMany
+    {
+        return $this->hasMany(ChatMessage::class, 'sender_id');
+    }
 }
