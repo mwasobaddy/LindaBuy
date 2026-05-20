@@ -37,12 +37,12 @@ beforeEach(function () {
     ]);
 });
 
-function makeG4sOrder(string $status): Order
+function makeG4sOrder(string $status, User $buyerUser, Seller $seller, Agent $agent): Order
 {
-    $order = Order::factory()->create([
-        'buyer_id' => $this->buyerUser->id,
-        'seller_id' => $this->seller->id,
-        'agent_id' => $this->agent->id,
+    return Order::factory()->create([
+        'buyer_id' => $buyerUser->id,
+        'seller_id' => $seller->id,
+        'agent_id' => $agent->id,
         'status' => $status,
         'initiator_type' => 'buyer',
         'price' => 50000,
@@ -52,12 +52,10 @@ function makeG4sOrder(string $status): Order
         'g4s_tracking_ref' => 'G4S-REF-001',
         'expiry_at' => now()->addMinutes(5),
     ]);
-
-    return $order;
 }
 
 test('admin can confirm G4S pickup', function () {
-    $order = makeG4sOrder('verified');
+    $order = makeG4sOrder('verified', $this->buyerUser, $this->seller, $this->agent);
 
     $response = actingAs($this->adminUser)
         ->patchJson("/api/admin/orders/{$order->id}/confirm-g4s-pickup");
@@ -89,7 +87,7 @@ test('admin cannot confirm pickup on non-G4S order', function () {
 });
 
 test('admin cannot confirm pickup on wrong status', function () {
-    $order = makeG4sOrder('funds_locked');
+    $order = makeG4sOrder('funds_locked', $this->buyerUser, $this->seller, $this->agent);
 
     $response = actingAs($this->adminUser)
         ->patchJson("/api/admin/orders/{$order->id}/confirm-g4s-pickup");
@@ -98,7 +96,7 @@ test('admin cannot confirm pickup on wrong status', function () {
 });
 
 test('non-admin cannot confirm pickup', function () {
-    $order = makeG4sOrder('verified');
+    $order = makeG4sOrder('verified', $this->buyerUser, $this->seller, $this->agent);
 
     $response = actingAs($this->buyerUser)
         ->patchJson("/api/admin/orders/{$order->id}/confirm-g4s-pickup");
@@ -109,7 +107,7 @@ test('non-admin cannot confirm pickup', function () {
 test('admin can set auto-release timer', function () {
     Queue::fake();
 
-    $order = makeG4sOrder('verified');
+    $order = makeG4sOrder('verified', $this->buyerUser, $this->seller, $this->agent);
 
     $response = actingAs($this->adminUser)
         ->patchJson("/api/admin/orders/{$order->id}/auto-release", [
@@ -126,8 +124,8 @@ test('admin can set auto-release timer', function () {
 });
 
 test('admin can view pending G4S orders', function () {
-    $order1 = makeG4sOrder('verified');
-    $order2 = makeG4sOrder('g4s_pickup_confirmed');
+    $order1 = makeG4sOrder('verified', $this->buyerUser, $this->seller, $this->agent);
+    $order2 = makeG4sOrder('g4s_pickup_confirmed', $this->buyerUser, $this->seller, $this->agent);
     // Non-G4S order should not appear
     Order::factory()->create([
         'buyer_id' => $this->buyerUser->id,
@@ -148,7 +146,7 @@ test('admin can view pending G4S orders', function () {
 });
 
 test('admin can view G4S order details', function () {
-    $order = makeG4sOrder('verified');
+    $order = makeG4sOrder('verified', $this->buyerUser, $this->seller, $this->agent);
 
     $response = actingAs($this->adminUser)
         ->getJson("/api/admin/orders/{$order->id}/g4s-details");
@@ -159,7 +157,7 @@ test('admin can view G4S order details', function () {
 });
 
 test('auto-release job fires and releases payment end-to-end', function () {
-    $order = makeG4sOrder('verified');
+    $order = makeG4sOrder('verified', $this->buyerUser, $this->seller, $this->agent);
 
     $response = actingAs($this->adminUser)
         ->patchJson("/api/admin/orders/{$order->id}/auto-release", [
@@ -177,7 +175,7 @@ test('auto-release job fires and releases payment end-to-end', function () {
 });
 
 test('auto-release is idempotent', function () {
-    $order = makeG4sOrder('verified');
+    $order = makeG4sOrder('verified', $this->buyerUser, $this->seller, $this->agent);
 
     $job1 = new ReleaseG4sOrder($order);
     $job1->handle(app(OrderService::class));
@@ -194,7 +192,7 @@ test('auto-release is idempotent', function () {
 });
 
 test('non-admin cannot view pending G4S orders', function () {
-    makeG4sOrder('verified');
+    makeG4sOrder('verified', $this->buyerUser, $this->seller, $this->agent);
 
     $response = actingAs($this->buyerUser)
         ->getJson('/api/admin/g4s-pending-release');
@@ -203,7 +201,7 @@ test('non-admin cannot view pending G4S orders', function () {
 });
 
 test('non-admin cannot view G4S details', function () {
-    $order = makeG4sOrder('verified');
+    $order = makeG4sOrder('verified', $this->buyerUser, $this->seller, $this->agent);
 
     $response = actingAs($this->buyerUser)
         ->getJson("/api/admin/orders/{$order->id}/g4s-details");
