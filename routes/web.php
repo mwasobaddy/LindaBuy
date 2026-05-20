@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Auth\OtpController;
+use App\Models\Withdrawal;
+use App\Services\LedgerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -19,6 +21,40 @@ Route::middleware(['mobile.verified'])->group(function () {
 
         // Agent upgrade page
         Route::inertia('agent/request', 'agent/request')->name('agent.request');
+
+        // Wallet page
+        Route::get('wallet', function (Request $request, LedgerService $ledgerService) {
+            $user = $request->user();
+            $balance = $ledgerService->getBuyerBalance($user);
+            $account = $ledgerService->getOrCreateBuyerWalletAccount($user);
+            $history = $ledgerService->getAccountHistory($account);
+
+            return Inertia::render('wallet/index', [
+                'wallet_balance' => ['available' => $balance, 'ledger' => $balance],
+                'recent_transactions' => $history,
+            ]);
+        })->name('wallet');
+
+        // Seller withdrawals page
+        Route::get('seller/withdrawals', function (Request $request, LedgerService $ledgerService) {
+            $user = $request->user();
+            $seller = $user->sellers()->first();
+            $receivableBalance = 0;
+            $withdrawals = collect();
+
+            if ($seller) {
+                $receivableAccount = $ledgerService->getOrCreateSellerReceivableAccount($seller);
+                $receivableBalance = $receivableAccount->balance;
+                $withdrawals = Withdrawal::where('seller_id', $seller->id)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+            }
+
+            return Inertia::render('seller/withdrawals', [
+                'receivable_balance' => $receivableBalance,
+                'withdrawals' => $withdrawals,
+            ]);
+        })->name('seller.withdrawals');
     });
 
     require __DIR__.'/settings.php';
@@ -29,6 +65,17 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::inertia('sellers/{seller}/review', 'sellers/review')->name('sellers.review');
     Route::inertia('agents/pending', 'agents/pending')->name('agents.pending');
     Route::inertia('agents/{agent}/review', 'agents/review')->name('agents.review');
+
+    // Admin withdrawals page
+    Route::get('withdrawals', function (Request $request) {
+        $withdrawals = Withdrawal::with('seller.user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return Inertia::render('admin/withdrawals/index', [
+            'withdrawals' => $withdrawals,
+        ]);
+    })->name('withdrawals');
 });
 
 Route::prefix('auth')->name('auth.')->group(function () {

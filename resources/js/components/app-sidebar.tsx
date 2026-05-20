@@ -5,6 +5,8 @@ import {
     LayoutGrid,
     ShieldCheck,
     Users,
+    Wallet,
+    Banknote,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -31,6 +33,7 @@ export function AppSidebar() {
     } | undefined;
     const permissions = user?.permissions ?? [];
     const isAdmin = user?.is_admin ?? false;
+    const role = user?.role ?? 'buyer';
     const dashboardUrl = dashboard();
 
     const mainNavItems: NavItem[] = [
@@ -39,7 +42,20 @@ export function AppSidebar() {
             href: dashboardUrl,
             icon: LayoutGrid,
         },
+        {
+            title: 'Wallet',
+            href: '/wallet',
+            icon: Wallet,
+        },
     ];
+
+    if (role === 'seller:approved' || permissions.includes('view-income')) {
+        mainNavItems.push({
+            title: 'Withdrawals',
+            href: '/seller/withdrawals',
+            icon: Banknote,
+        });
+    }
 
     if (isAdmin || permissions.includes('approve-sellers') || permissions.includes('approve-agents')) {
         mainNavItems.push(
@@ -52,6 +68,11 @@ export function AppSidebar() {
                 title: 'Agents',
                 href: '/admin/agents/pending',
                 icon: Users,
+            },
+            {
+                title: 'Withdrawals',
+                href: '/admin/withdrawals',
+                icon: Banknote,
             }
         );
     }

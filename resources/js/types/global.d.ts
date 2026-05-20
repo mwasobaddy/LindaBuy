@@ -31,6 +31,10 @@ declare module '@inertiajs/core' {
             sidebarOpen: boolean;
             currentTeam: Team | null;
             teams: Team[];
+            wallet_balance?: { available: number; ledger: number };
+            recent_transactions?: unknown[];
+            receivable_balance?: number;
+            withdrawals?: unknown[];
             [key: string]: unknown;
         };
     }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureMobileIsVerified;
+use App\Http\Middleware\EnsureMpesaIp;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'mobile.verified' => EnsureMobileIsVerified::class,
             'admin' => EnsureUserIsAdmin::class,
+            'mpesa-ip' => EnsureMpesaIp::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
