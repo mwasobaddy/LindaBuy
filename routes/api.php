@@ -1,7 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminOrderController;
 use App\Http\Controllers\Api\Admin\AdminWithdrawalController;
 use App\Http\Controllers\Api\AgentController;
+use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\OrderTemplateController;
 use App\Http\Controllers\Api\SellerController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\WithdrawalController;
@@ -32,6 +36,38 @@ Route::middleware(['auth'])->group(function () {
         Route::get('seller', [WithdrawalController::class, 'myWithdrawals'])->name('seller');
     });
 
+    // Orders (authenticated)
+    Route::prefix('orders')->name('orders.')->group(function () {
+        Route::get('/', [OrderController::class, 'myOrders'])->name('index');
+        Route::get('available-jobs', [OrderController::class, 'agentAvailableJobs'])->name('available-jobs');
+        Route::get('my-jobs', [OrderController::class, 'agentMyJobs'])->name('my-jobs');
+        Route::get('{order}', [OrderController::class, 'show'])->name('show');
+        Route::post('seller-initiated', [OrderController::class, 'createSellerOrder'])->name('create-seller');
+        Route::post('buyer-initiated', [OrderController::class, 'createBuyerOrder'])->name('create-buyer');
+        Route::post('{order}/accept', [OrderController::class, 'accept'])->name('accept');
+        Route::post('{order}/decline', [OrderController::class, 'decline'])->name('decline');
+        Route::post('{order}/confirm-delivery', [OrderController::class, 'confirmDelivery'])->name('confirm-delivery');
+        Route::post('{order}/request-release-confirmation', [OrderController::class, 'requestReleaseConfirmation'])->name('request-release');
+        Route::post('{order}/resend-release-token', [OrderController::class, 'resendReleaseToken'])->name('resend-release');
+        Route::post('{order}/release', [OrderController::class, 'release'])->name('release');
+        Route::post('{order}/accept-job', [OrderController::class, 'acceptJob'])->name('accept-job');
+        Route::post('{order}/verify', [OrderController::class, 'verify'])->name('verify');
+        Route::post('{order}/report-issue', [OrderController::class, 'reportIssue'])->name('report-issue');
+
+        // Chat messages
+        Route::get('{order}/messages', [ChatController::class, 'index'])->name('messages.index');
+        Route::post('{order}/messages', [ChatController::class, 'store'])->name('messages.store');
+    });
+
+    // Order Templates (seller only)
+    Route::middleware('permission:create-sell-orders')->prefix('order-templates')->name('order-templates.')->group(function () {
+        Route::get('/', [OrderTemplateController::class, 'index'])->name('index');
+        Route::post('/', [OrderTemplateController::class, 'store'])->name('store');
+        Route::get('{orderTemplate}', [OrderTemplateController::class, 'show'])->name('show');
+        Route::patch('{orderTemplate}', [OrderTemplateController::class, 'update'])->name('update');
+        Route::delete('{orderTemplate}', [OrderTemplateController::class, 'destroy'])->name('destroy');
+    });
+
     // Admin routes
     Route::prefix('admin')->middleware(['admin'])->group(function () {
         // Sellers
@@ -55,6 +91,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('withdrawals/{withdrawal}/process', [AdminWithdrawalController::class, 'process'])->name('withdrawals.process');
         Route::post('withdrawals/{withdrawal}/complete', [AdminWithdrawalController::class, 'complete'])->name('withdrawals.complete');
         Route::post('withdrawals/{withdrawal}/fail', [AdminWithdrawalController::class, 'fail'])->name('withdrawals.fail');
+
+        // Admin orders
+        Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
+        Route::patch('orders/{order}/confirm-g4s-pickup', [AdminOrderController::class, 'confirmG4sPickup']);
+        Route::patch('orders/{order}/auto-release', [AdminOrderController::class, 'setAutoRelease']);
+        Route::get('g4s-pending-release', [AdminOrderController::class, 'g4sPendingRelease']);
+        Route::get('orders/{order}/g4s-details', [AdminOrderController::class, 'g4sDetails']);
     });
 });
 

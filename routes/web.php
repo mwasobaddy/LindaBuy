@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Auth\OtpController;
+use App\Models\Order;
+use App\Models\OrderTemplate;
 use App\Models\Withdrawal;
 use App\Services\LedgerService;
 use Illuminate\Http\Request;
@@ -22,6 +24,9 @@ Route::middleware(['mobile.verified'])->group(function () {
         // Agent upgrade page
         Route::inertia('agent/request', 'agent/request')->name('agent.request');
 
+        // Agent dashboard
+        Route::inertia('agent/dashboard', 'agent/dashboard')->name('agent.dashboard');
+
         // Wallet page
         Route::get('wallet', function (Request $request, LedgerService $ledgerService) {
             $user = $request->user();
@@ -34,6 +39,56 @@ Route::middleware(['mobile.verified'])->group(function () {
                 'recent_transactions' => $history,
             ]);
         })->name('wallet');
+
+        // Orders pages
+        Route::get('orders', function (Request $request) {
+            $user = $request->user();
+            $orders = Order::with(['seller', 'buyer'])
+                ->where(function ($query) use ($user) {
+                    $query->where('buyer_id', $user->id)
+                        ->orWhereHas('seller', function ($q) use ($user) {
+                            $q->where('user_id', $user->id);
+                        });
+                })
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return Inertia::render('orders/index', ['orders' => $orders]);
+        })->name('orders.index');
+
+        Route::get('orders/create/seller', function (Request $request) {
+            $user = $request->user();
+            $seller = $user->sellers()->first();
+            $templates = $seller
+                ? OrderTemplate::where('seller_id', $seller->id)->get()
+                : [];
+
+            return Inertia::render('orders/create-seller', [
+                'templates' => $templates,
+                'seller_id' => $seller?->id,
+            ]);
+        })->name('orders.create-seller');
+
+        Route::inertia('orders/create/buyer', 'orders/create-buyer')->name('orders.create-buyer');
+        Route::get('orders/{order}', function (Order $order) {
+            $order->load(['seller', 'buyer', 'agent', 'issueReports', 'chatMessages']);
+
+            return Inertia::render('orders/show', ['order' => $order]);
+        })->name('orders.show');
+
+        // Seller templates page
+        Route::get('seller/templates', function (Request $request) {
+            $user = $request->user();
+            $seller = $user->sellers()->first();
+            $templates = $seller
+                ? OrderTemplate::where('seller_id', $seller->id)->get()
+                : [];
+
+            return Inertia::render('seller/templates', ['templates' => $templates]);
+        })->name('seller.templates');
+
+        // Chat page
+        Route::get('orders/{order}/chat', [\App\Http\Controllers\ChatPageController::class, 'show'])->name('orders.chat');
 
         // Seller withdrawals page
         Route::get('seller/withdrawals', function (Request $request, LedgerService $ledgerService) {
