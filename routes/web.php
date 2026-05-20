@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\OtpController;
+use App\Http\Controllers\ChatPageController;
 use App\Models\Order;
 use App\Models\OrderTemplate;
 use App\Models\Withdrawal;
@@ -88,7 +89,7 @@ Route::middleware(['mobile.verified'])->group(function () {
         })->name('seller.templates');
 
         // Chat page
-        Route::get('orders/{order}/chat', [\App\Http\Controllers\ChatPageController::class, 'show'])->name('orders.chat');
+        Route::get('orders/{order}/chat', [ChatPageController::class, 'show'])->name('orders.chat');
 
         // Seller withdrawals page
         Route::get('seller/withdrawals', function (Request $request, LedgerService $ledgerService) {

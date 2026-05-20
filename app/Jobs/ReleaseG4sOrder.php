@@ -9,7 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 
-class ReleaseG4sOrder implements ShouldQueue, ShouldBeUniqueUntilProcessing
+class ReleaseG4sOrder implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use Queueable;
 
