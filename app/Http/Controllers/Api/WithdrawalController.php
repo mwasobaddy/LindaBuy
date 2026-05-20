@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Responses\Api\CreatedResponse;
+use App\Http\Responses\Api\ErrorResponse;
+use App\Http\Responses\Api\ForbiddenResponse;
+use App\Http\Responses\Api\SuccessResponse;
 use App\Models\Withdrawal;
 use App\Services\LedgerService;
 use Illuminate\Http\Request;
@@ -19,7 +22,7 @@ class WithdrawalController extends Controller
         $user = $request->user();
 
         if (! $user->hasRole('seller')) {
-            return ApiResponse::forbidden('Only sellers can request withdrawals.');
+            return app(ForbiddenResponse::class, ['message' => 'Only sellers can request withdrawals.']);
         }
 
         $validated = $request->validate([
@@ -29,14 +32,14 @@ class WithdrawalController extends Controller
         $seller = $user->sellers()->first();
 
         if (! $seller) {
-            return ApiResponse::error('No seller account found.', 422);
+            return app(ErrorResponse::class, ['message' => 'No seller account found.', 'status' => 422]);
         }
 
         $receivableAccount = $this->ledgerService->getOrCreateSellerReceivableAccount($seller);
         $balance = $receivableAccount->balance;
 
         if ($balance < $validated['amount_cents']) {
-            return ApiResponse::error('Insufficient receivable balance.', 422);
+            return app(ErrorResponse::class, ['message' => 'Insufficient receivable balance.', 'status' => 422]);
         }
 
         $withdrawal = Withdrawal::create([
@@ -46,7 +49,10 @@ class WithdrawalController extends Controller
             'requested_at' => now(),
         ]);
 
-        return ApiResponse::success($withdrawal, 'Withdrawal request submitted.', 201);
+        return app(CreatedResponse::class, [
+            'data' => $withdrawal,
+            'message' => 'Withdrawal request submitted.',
+        ]);
     }
 
     public function myWithdrawals(Request $request)
@@ -55,13 +61,13 @@ class WithdrawalController extends Controller
         $seller = $user->sellers()->first();
 
         if (! $seller) {
-            return ApiResponse::success([]);
+            return app(SuccessResponse::class, ['data' => []]);
         }
 
         $withdrawals = Withdrawal::where('seller_id', $seller->id)
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return ApiResponse::success($withdrawals);
+        return app(SuccessResponse::class, ['data' => $withdrawals]);
     }
 }

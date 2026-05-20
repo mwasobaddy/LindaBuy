@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Responses\Api\CreatedResponse;
+use App\Http\Responses\Api\ErrorResponse;
+use App\Http\Responses\Api\NotFoundResponse;
+use App\Http\Responses\Api\SuccessResponse;
 use App\Models\CallbackIdempotency;
 use App\Services\LedgerService;
 use App\Services\MpesaService;
@@ -26,13 +29,13 @@ class WalletController extends Controller
         $account = $this->ledgerService->getOrCreateBuyerWalletAccount($user);
         $history = $this->ledgerService->getAccountHistory($account);
 
-        return ApiResponse::success([
+        return app(SuccessResponse::class, ['data' => [
             'balance' => [
                 'available' => $balance,
                 'ledger' => $balance,
             ],
             'recent_transactions' => $history,
-        ]);
+        ]]);
     }
 
     public function topUp(Request $request)
@@ -47,10 +50,13 @@ class WalletController extends Controller
                 $validated['amount_cents']
             );
         } catch (\InvalidArgumentException $e) {
-            return ApiResponse::error($e->getMessage(), 422);
+            return app(ErrorResponse::class, ['message' => $e->getMessage(), 'status' => 422]);
         }
 
-        return ApiResponse::success($result, 'Check your phone to enter M-Pesa PIN', 201);
+        return app(CreatedResponse::class, [
+            'data' => $result,
+            'message' => 'Check your phone to enter M-Pesa PIN',
+        ]);
     }
 
     public function callback(Request $request)
@@ -58,7 +64,7 @@ class WalletController extends Controller
         $payload = $request->all();
 
         if (! $this->mpesaService->validateCallback($payload)) {
-            return ApiResponse::error('Invalid callback signature.', 400);
+            return app(ErrorResponse::class, ['message' => 'Invalid callback signature.', 'status' => 400]);
         }
 
         $this->walletService->processCallback($payload);
@@ -74,32 +80,32 @@ class WalletController extends Controller
         $callbackRecord = CallbackIdempotency::where('checkout_request_id', $checkoutRequestId)->first();
 
         if (! $callbackRecord) {
-            return ApiResponse::notFound('Checkout request not found.');
+            return app(NotFoundResponse::class, ['message' => 'Checkout request not found.']);
         }
 
         if ($callbackRecord->processed_at !== null) {
-            return ApiResponse::success([
+            return app(SuccessResponse::class, ['data' => [
                 'status' => $callbackRecord->result_code === 0 ? 'completed' : 'failed',
                 'result_code' => $callbackRecord->result_code,
                 'description' => $callbackRecord->result_code === 0 ? 'Transaction completed' : 'Transaction failed',
-            ]);
+            ]]);
         }
 
         try {
             $status = $this->mpesaService->stkQuery($checkoutRequestId);
         } catch (\Throwable $e) {
-            return ApiResponse::success([
+            return app(SuccessResponse::class, ['data' => [
                 'status' => 'pending',
                 'result_code' => null,
                 'description' => 'Still processing',
-            ]);
+            ]]);
         }
 
-        return ApiResponse::success([
+        return app(SuccessResponse::class, ['data' => [
             'status' => 'pending',
             'result_code' => $status['ResultCode'] ?? null,
             'description' => $status['ResultDesc'] ?? 'Still processing',
-        ]);
+        ]]);
     }
 
     public function depositHistory(Request $request)
@@ -108,6 +114,6 @@ class WalletController extends Controller
         $account = $this->ledgerService->getOrCreateBuyerWalletAccount($user);
         $history = $this->ledgerService->getAccountHistory($account, 100);
 
-        return ApiResponse::success($history);
+        return app(SuccessResponse::class, ['data' => $history]);
     }
 }

@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Agent\ApproveRequest;
 use App\Http\Requests\Agent\RejectRequest;
 use App\Http\Requests\Agent\StoreAgentRequest;
+use App\Http\Responses\Api\ErrorResponse;
+use App\Http\Responses\Api\ForbiddenResponse;
+use App\Http\Responses\Api\NotFoundResponse;
+use App\Http\Responses\Api\SuccessResponse;
 use App\Models\Agent;
 use App\Models\KycVerification;
 use App\Services\KycUploadService;
@@ -24,11 +27,11 @@ class AgentController extends Controller
         $user = $request->user();
 
         if ($user->agent) {
-            return ApiResponse::error('You already have an agent record.', 422);
+            return app(ErrorResponse::class, ['message' => 'You already have an agent record.', 'status' => 422]);
         }
 
         if ($user->role !== 'buyer') {
-            return ApiResponse::error('Only buyers can request agent upgrade.', 422);
+            return app(ErrorResponse::class, ['message' => 'Only buyers can request agent upgrade.', 'status' => 422]);
         }
 
         return DB::transaction(function () use ($request, $user) {
@@ -66,11 +69,11 @@ class AgentController extends Controller
             $user->update(['role' => 'agent:pending']);
 
             if ($request->wantsJson()) {
-                return ApiResponse::success(
-                    ['agent_id' => $agent->id],
-                    'Agent upgrade request submitted successfully.',
-                    201
-                );
+                return app(SuccessResponse::class, [
+                    'data' => ['agent_id' => $agent->id],
+                    'message' => 'Agent upgrade request submitted successfully.',
+                    'status' => 201,
+                ]);
             }
 
             return redirect()->back()->with('success', 'Agent upgrade request submitted successfully.');
@@ -80,7 +83,7 @@ class AgentController extends Controller
     public function updateKyc(Request $request, Agent $agent)
     {
         if ($agent->user_id !== $request->user()->id) {
-            return ApiResponse::forbidden('You can only update your own agent record.');
+            return app(ForbiddenResponse::class, ['message' => 'You can only update your own agent record.']);
         }
 
         $validated = $request->validate([
@@ -105,7 +108,10 @@ class AgentController extends Controller
             $kycVerification->update(['id_copy_path' => $path]);
         }
 
-        return ApiResponse::success(['agent_id' => $agent->id], 'Agent KYC updated.');
+        return app(SuccessResponse::class, [
+            'data' => ['agent_id' => $agent->id],
+            'message' => 'Agent KYC updated.',
+        ]);
     }
 
     public function show(Request $request)
@@ -113,12 +119,12 @@ class AgentController extends Controller
         $agent = $request->user()->agent;
 
         if (! $agent) {
-            return ApiResponse::notFound('No agent record found.');
+            return app(NotFoundResponse::class, ['message' => 'No agent record found.']);
         }
 
         $agent->load('user.kycVerification');
 
-        return ApiResponse::success($agent);
+        return app(SuccessResponse::class, ['data' => $agent]);
     }
 
     public function pendingAgents(Request $request)
@@ -128,7 +134,7 @@ class AgentController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return ApiResponse::success($agents);
+        return app(SuccessResponse::class, ['data' => $agents]);
     }
 
     public function allAgents(Request $request)
@@ -137,13 +143,13 @@ class AgentController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return ApiResponse::success($agents);
+        return app(SuccessResponse::class, ['data' => $agents]);
     }
 
     public function approve(ApproveRequest $request, Agent $agent)
     {
         if ($agent->kyc_status !== 'PENDING') {
-            return ApiResponse::error('Agent KYC is not in pending status.', 422);
+            return app(ErrorResponse::class, ['message' => 'Agent KYC is not in pending status.', 'status' => 422]);
         }
 
         return DB::transaction(function () use ($agent) {
@@ -156,14 +162,14 @@ class AgentController extends Controller
             $user->update(['role' => 'agent:approved']);
             $user->assignRole('agent');
 
-            return ApiResponse::success([], 'Agent approved successfully.');
+            return app(SuccessResponse::class, ['message' => 'Agent approved successfully.']);
         });
     }
 
     public function reject(RejectRequest $request, Agent $agent)
     {
         if ($agent->kyc_status !== 'PENDING') {
-            return ApiResponse::error('Agent KYC is not in pending status.', 422);
+            return app(ErrorResponse::class, ['message' => 'Agent KYC is not in pending status.', 'status' => 422]);
         }
 
         return DB::transaction(function () use ($request, $agent) {
@@ -173,7 +179,7 @@ class AgentController extends Controller
                 'rejected_at' => now(),
             ]);
 
-            return ApiResponse::success([], 'Agent rejected.');
+            return app(SuccessResponse::class, ['message' => 'Agent rejected.']);
         });
     }
 
@@ -182,7 +188,7 @@ class AgentController extends Controller
         $currentStatus = $agent->kyc_status;
 
         if (! in_array($currentStatus, ['APPROVED', 'REJECTED'])) {
-            return ApiResponse::error('Only approved or rejected agents can be toggled.', 422);
+            return app(ErrorResponse::class, ['message' => 'Only approved or rejected agents can be toggled.', 'status' => 422]);
         }
 
         return DB::transaction(function () use ($agent, $currentStatus) {
@@ -201,7 +207,7 @@ class AgentController extends Controller
                 }
             }
 
-            return ApiResponse::success([], "Agent status toggled to {$newStatus}.");
+            return app(SuccessResponse::class, ['message' => "Agent status toggled to {$newStatus}."]);
         });
     }
 }

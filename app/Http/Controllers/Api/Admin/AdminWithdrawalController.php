@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Responses\Api\ErrorResponse;
+use App\Http\Responses\Api\SuccessResponse;
 use App\Models\Account;
 use App\Models\Entry;
 use App\Models\Transaction;
@@ -28,26 +29,29 @@ class AdminWithdrawalController extends Controller
 
         $withdrawals = $query->orderBy('created_at', 'desc')->get();
 
-        return ApiResponse::success($withdrawals);
+        return app(SuccessResponse::class, ['data' => $withdrawals]);
     }
 
     public function process(Request $request, Withdrawal $withdrawal)
     {
         if ($withdrawal->status !== 'pending') {
-            return ApiResponse::error('Only pending withdrawals can be processed.', 422);
+            return app(ErrorResponse::class, ['message' => 'Only pending withdrawals can be processed.', 'status' => 422]);
         }
 
         $withdrawal->update([
             'status' => 'processing',
         ]);
 
-        return ApiResponse::success($withdrawal, 'Withdrawal marked as processing.');
+        return app(SuccessResponse::class, [
+            'data' => $withdrawal,
+            'message' => 'Withdrawal marked as processing.',
+        ]);
     }
 
     public function complete(Request $request, Withdrawal $withdrawal)
     {
         if ($withdrawal->status !== 'processing' && $withdrawal->status !== 'pending') {
-            return ApiResponse::error('Withdrawal cannot be completed from current status.', 422);
+            return app(ErrorResponse::class, ['message' => 'Withdrawal cannot be completed from current status.', 'status' => 422]);
         }
 
         return DB::transaction(function () use ($withdrawal) {
@@ -94,14 +98,17 @@ class AdminWithdrawalController extends Controller
                 'balance_after' => $mpesaPreviousBalance - $withdrawal->amount,
             ]);
 
-            return ApiResponse::success($withdrawal, 'Withdrawal completed.');
+            return app(SuccessResponse::class, [
+                'data' => $withdrawal,
+                'message' => 'Withdrawal completed.',
+            ]);
         });
     }
 
     public function fail(Request $request, Withdrawal $withdrawal)
     {
         if ($withdrawal->status !== 'processing' && $withdrawal->status !== 'pending') {
-            return ApiResponse::error('Withdrawal cannot be failed from current status.', 422);
+            return app(ErrorResponse::class, ['message' => 'Withdrawal cannot be failed from current status.', 'status' => 422]);
         }
 
         $validated = $request->validate([
@@ -114,6 +121,9 @@ class AdminWithdrawalController extends Controller
             'processed_at' => now(),
         ]);
 
-        return ApiResponse::success($withdrawal, 'Withdrawal marked as failed.');
+        return app(SuccessResponse::class, [
+            'data' => $withdrawal,
+            'message' => 'Withdrawal marked as failed.',
+        ]);
     }
 }

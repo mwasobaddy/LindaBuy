@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Seller\ApproveKycRequest;
 use App\Http\Requests\Seller\ApproveShopRequest;
 use App\Http\Requests\Seller\RejectKycRequest;
 use App\Http\Requests\Seller\RejectShopRequest;
 use App\Http\Requests\Seller\StoreSellerRequest;
+use App\Http\Responses\Api\ErrorResponse;
+use App\Http\Responses\Api\ForbiddenResponse;
+use App\Http\Responses\Api\SuccessResponse;
 use App\Models\KycVerification;
 use App\Models\Seller;
 use App\Services\KycUploadService;
@@ -26,21 +28,18 @@ class SellerController extends Controller
         $user = $request->user();
 
         if ($user->kycVerification && $user->kycVerification->kyc_status === 'PENDING') {
-            return ApiResponse::error('You already have a pending KYC verification.', 422);
+            return app(ErrorResponse::class, ['message' => 'You already have a pending KYC verification.', 'status' => 422]);
         }
 
         if ($user->kycVerification && $user->kycVerification->kyc_status === 'REJECTED') {
             $hoursSinceRejection = $user->kycVerification->rejected_at->diffInHours(now());
             if ($hoursSinceRejection < 24) {
-                return ApiResponse::error(
-                    'You can resubmit after 24 hours from rejection.',
-                    422
-                );
+                return app(ErrorResponse::class, ['message' => 'You can resubmit after 24 hours from rejection.', 'status' => 422]);
             }
         }
 
         if ($user->role !== 'buyer') {
-            return ApiResponse::error('Only buyers can request seller upgrade.', 422);
+            return app(ErrorResponse::class, ['message' => 'Only buyers can request seller upgrade.', 'status' => 422]);
         }
 
         return DB::transaction(function () use ($request, $user) {
@@ -82,11 +81,11 @@ class SellerController extends Controller
             $user->update(['role' => 'seller:pending']);
 
             if ($request->wantsJson()) {
-                return ApiResponse::success(
-                    ['seller_id' => $seller->id],
-                    'Seller upgrade request submitted successfully.',
-                    201
-                );
+                return app(SuccessResponse::class, [
+                    'data' => ['seller_id' => $seller->id],
+                    'message' => 'Seller upgrade request submitted successfully.',
+                    'status' => 201,
+                ]);
             }
 
             return redirect()->back()->with('success', 'Seller upgrade request submitted successfully.');
@@ -98,13 +97,13 @@ class SellerController extends Controller
         $user = $request->user();
         $sellers = $user->sellers()->with('user.kycVerification')->get();
 
-        return ApiResponse::success($sellers);
+        return app(SuccessResponse::class, ['data' => $sellers]);
     }
 
     public function update(Request $request, Seller $seller)
     {
         if ($seller->user_id !== $request->user()->id) {
-            return ApiResponse::forbidden('You can only update your own shops.');
+            return app(ForbiddenResponse::class, ['message' => 'You can only update your own shops.']);
         }
 
         $validated = $request->validate([
@@ -116,7 +115,10 @@ class SellerController extends Controller
 
         $seller->update($validated);
 
-        return ApiResponse::success(['seller_id' => $seller->id], 'Shop details updated.');
+        return app(SuccessResponse::class, [
+            'data' => ['seller_id' => $seller->id],
+            'message' => 'Shop details updated.',
+        ]);
     }
 
     public function pendingSellers(Request $request)
@@ -127,7 +129,7 @@ class SellerController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return ApiResponse::success($sellers);
+        return app(SuccessResponse::class, ['data' => $sellers]);
     }
 
     public function allSellers(Request $request)
@@ -136,7 +138,7 @@ class SellerController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return ApiResponse::success($sellers);
+        return app(SuccessResponse::class, ['data' => $sellers]);
     }
 
     public function approveKyc(ApproveKycRequest $request, Seller $seller)
@@ -144,7 +146,7 @@ class SellerController extends Controller
         $kyc = $seller->user->kycVerification;
 
         if (! $kyc || $kyc->kyc_status !== 'PENDING') {
-            return ApiResponse::error('KYC is not in pending status.', 422);
+            return app(ErrorResponse::class, ['message' => 'KYC is not in pending status.', 'status' => 422]);
         }
 
         return DB::transaction(function () use ($seller) {
@@ -156,7 +158,7 @@ class SellerController extends Controller
 
             $this->checkAndAssignFullSellerApproval($seller);
 
-            return ApiResponse::success([], 'KYC approved successfully.');
+            return app(SuccessResponse::class, ['message' => 'KYC approved successfully.']);
         });
     }
 
@@ -165,7 +167,7 @@ class SellerController extends Controller
         $kyc = $seller->user->kycVerification;
 
         if (! $kyc || $kyc->kyc_status !== 'PENDING') {
-            return ApiResponse::error('KYC is not in pending status.', 422);
+            return app(ErrorResponse::class, ['message' => 'KYC is not in pending status.', 'status' => 422]);
         }
 
         return DB::transaction(function () use ($request, $seller) {
@@ -176,14 +178,14 @@ class SellerController extends Controller
                 'rejected_at' => now(),
             ]);
 
-            return ApiResponse::success([], 'KYC rejected.');
+            return app(SuccessResponse::class, ['message' => 'KYC rejected.']);
         });
     }
 
     public function approveShop(ApproveShopRequest $request, Seller $seller)
     {
         if ($seller->verification_status !== 'PENDING') {
-            return ApiResponse::error('Shop is not in pending status.', 422);
+            return app(ErrorResponse::class, ['message' => 'Shop is not in pending status.', 'status' => 422]);
         }
 
         return DB::transaction(function () use ($seller) {
@@ -194,14 +196,14 @@ class SellerController extends Controller
 
             $this->checkAndAssignFullSellerApproval($seller);
 
-            return ApiResponse::success([], 'Shop approved successfully.');
+            return app(SuccessResponse::class, ['message' => 'Shop approved successfully.']);
         });
     }
 
     public function rejectShop(RejectShopRequest $request, Seller $seller)
     {
         if ($seller->verification_status !== 'PENDING') {
-            return ApiResponse::error('Shop is not in pending status.', 422);
+            return app(ErrorResponse::class, ['message' => 'Shop is not in pending status.', 'status' => 422]);
         }
 
         return DB::transaction(function () use ($request, $seller) {
@@ -211,7 +213,7 @@ class SellerController extends Controller
                 'rejected_at' => now(),
             ]);
 
-            return ApiResponse::success([], 'Shop rejected.');
+            return app(SuccessResponse::class, ['message' => 'Shop rejected.']);
         });
     }
 
@@ -220,7 +222,7 @@ class SellerController extends Controller
         $currentStatus = $seller->verification_status;
 
         if (! in_array($currentStatus, ['APPROVED', 'REJECTED'])) {
-            return ApiResponse::error('Only approved or rejected sellers can be toggled.', 422);
+            return app(ErrorResponse::class, ['message' => 'Only approved or rejected sellers can be toggled.', 'status' => 422]);
         }
 
         return DB::transaction(function () use ($seller, $currentStatus) {
@@ -237,7 +239,7 @@ class SellerController extends Controller
                 }
             }
 
-            return ApiResponse::success([], "Seller status toggled to {$newStatus}.");
+            return app(SuccessResponse::class, ['message' => "Seller status toggled to {$newStatus}."]);
         });
     }
 
