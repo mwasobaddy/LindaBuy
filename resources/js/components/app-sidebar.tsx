@@ -89,6 +89,11 @@ export function AppSidebar() {
     if (isAdmin || permissions.includes('approve-sellers') || permissions.includes('approve-agents')) {
         mainNavItems.push(
             {
+                title: 'Orders',
+                href: '/admin/orders',
+                icon: ShoppingCart,
+            },
+            {
                 title: 'Sellers',
                 href: '/admin/sellers/pending',
                 icon: ShieldCheck,
