@@ -158,6 +158,14 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // Callback monitoring page
     Route::inertia('callbacks', 'admin/callbacks/index')->name('callbacks');
 
+    // Issue reports page
+    Route::get('issue-reports', function () {
+        return Inertia::render('admin/issue-reports/index', [
+            'statuses' => ['REPORTED', 'UNDER_REVIEW', 'RESOLVED', 'DISMISSED'],
+            'issue_types' => ['QUANTITY_MISMATCH', 'QUALITY_ISSUE', 'NOT_AS_DESCRIBED', 'OTHER'],
+        ]);
+    })->name('issue-reports');
+
     // Settings page
     Route::get('settings', function (Request $request) {
         $settings = app(SettingsService::class)->all();
