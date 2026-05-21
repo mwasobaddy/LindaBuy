@@ -19,6 +19,9 @@ class DatabaseSeeder extends Seeder
         // Seed chart of accounts
         $this->call(AccountSeeder::class);
 
+        // Seed system settings
+        $this->call(SettingsSeeder::class);
+
         // User::factory(10)->create();
 
         $user = User::factory()->create([

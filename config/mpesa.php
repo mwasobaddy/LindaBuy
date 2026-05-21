@@ -9,4 +9,7 @@ return [
     'initiator_name' => env('MPESA_INITIATOR_NAME', ''),
     'initiator_password' => env('MPESA_INITIATOR_PASSWORD', ''),
     'callback_url' => env('MPESA_CALLBACK_URL', ''),
+    'callback_timeout_minutes' => env('MPESA_CALLBACK_TIMEOUT_MINUTES', 10),
+
+    'callback_hmac_secret' => env('MPESA_CALLBACK_HMAC_SECRET', ''),
 ];

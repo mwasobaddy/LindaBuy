@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuditMiddleware;
 use App\Http\Middleware\EnsureMobileIsVerified;
 use App\Http\Middleware\EnsureMpesaIp;
 use App\Http\Middleware\EnsureUserIsAdmin;
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureUserIsAdmin::class,
             'mpesa-ip' => EnsureMpesaIp::class,
             'permission' => PermissionMiddleware::class,
+            'audit' => AuditMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

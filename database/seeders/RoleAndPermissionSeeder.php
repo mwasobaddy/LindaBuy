@@ -58,6 +58,9 @@ class RoleAndPermissionSeeder extends Seeder
             'confirm-g4s-pickup',
             'auto-release-orders',
             'manage-withdrawals',
+            'view-callbacks',
+            'handle-callbacks',
+            'manage-settings',
         ];
 
         // Create all permissions
