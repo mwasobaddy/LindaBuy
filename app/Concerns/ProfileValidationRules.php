@@ -17,7 +17,8 @@ trait ProfileValidationRules
     {
         return [
             'name' => $this->nameRules(),
-            'phone' => $this->phoneRules($userId),
+            'email' => $this->emailRules($userId),
+            'avatar' => $this->avatarRules(),
         ];
     }
 
@@ -32,20 +33,31 @@ trait ProfileValidationRules
     }
 
     /**
-     * Get the validation rules used to validate user phones.
+     * Get the validation rules used to validate email.
      *
      * @return array<int, ValidationRule|array<mixed>|string>
      */
-    protected function phoneRules(?int $userId = null): array
+    protected function emailRules(?int $userId = null): array
     {
         return [
-            'required',
+            'nullable',
             'string',
-            'regex:/^[17]\d{8}$/',
+            'lowercase',
+            'email',
             'max:255',
             $userId === null
                 ? Rule::unique(User::class)
                 : Rule::unique(User::class)->ignore($userId),
         ];
+    }
+
+    /**
+     * Get the validation rules used to validate avatar uploads.
+     *
+     * @return array<int, ValidationRule|array<mixed>|string>
+     */
+    protected function avatarRules(): array
+    {
+        return ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'];
     }
 }
