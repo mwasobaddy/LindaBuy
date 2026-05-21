@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\CallbackIdempotency;
 use App\Models\Seller;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class WalletService
 {
@@ -39,6 +40,11 @@ class WalletService
             CallbackIdempotency::create([
                 'correlation_id' => $checkoutRequestId,
                 'checkout_request_id' => $checkoutRequestId,
+                'user_id' => $user->id,
+                'amount' => $amountCents,
+                'phone' => $user->phone,
+                'reference' => $reference,
+                'status' => 'pending',
                 'processed_at' => null,
                 'result_code' => null,
             ]);
@@ -55,6 +61,7 @@ class WalletService
         $parsed = $this->mpesaService->parseCallback($payload);
         $checkoutRequestId = $parsed['checkout_request_id'];
         $resultCode = $parsed['result_code'];
+        $resultDesc = $parsed['result_desc'] ?? null;
 
         $callbackRecord = CallbackIdempotency::where('checkout_request_id', $checkoutRequestId)->first();
 
@@ -67,11 +74,14 @@ class WalletService
         }
 
         if ($resultCode === 0) {
-            $amount = $parsed['Amount'] ?? 0;
-            $amountCents = (int) $amount * 100;
-            $transactionId = $parsed['TransactionID'] ?? $checkoutRequestId;
+            $callbackAmount = $parsed['Amount'] ?? 0;
+            $amountCents = (int) $callbackAmount * 100;
+            $transactionId = $parsed['MpesaReceiptNumber'] ?? $parsed['TransactionID'] ?? $checkoutRequestId;
 
-            // Find user from the reference in the checkout request
+            if ($this->rejectOnAmountMismatch($callbackRecord, $payload, $callbackAmount, $amountCents)) {
+                return;
+            }
+
             $user = $this->findUserByCheckoutRequest($checkoutRequestId);
 
             if ($user) {
@@ -86,13 +96,70 @@ class WalletService
             $callbackRecord->update([
                 'processed_at' => now(),
                 'result_code' => $resultCode,
+                'response_description' => $resultDesc,
+                'callback_payload' => $payload,
+                'status' => 'success',
+                'mpesa_receipt' => $transactionId,
             ]);
         } else {
             $callbackRecord->update([
                 'result_code' => $resultCode,
                 'processed_at' => now(),
+                'response_description' => $resultDesc,
+                'callback_payload' => $payload,
+                'status' => 'failed',
             ]);
         }
+    }
+
+    protected function rejectOnAmountMismatch(CallbackIdempotency $callbackRecord, array $payload, int|string $callbackAmount, int $amountCents): bool
+    {
+        if ($callbackRecord->amount === null) {
+            return false;
+        }
+
+        $callbackAmountInt = (int) $callbackAmount;
+
+        $isMismatch = false;
+        $description = null;
+
+        if ($callbackAmountInt <= 0 && $callbackRecord->amount > 0) {
+            $isMismatch = true;
+            $description = 'Amount mismatch: callback reported zero amount for expected '.$callbackRecord->amount;
+        } elseif ($callbackAmountInt > 0 && $callbackAmountInt !== $callbackRecord->amount) {
+            $isMismatch = true;
+            $description = 'Amount mismatch: expected '.$callbackRecord->amount.', received '.$callbackAmountInt;
+        }
+
+        if (! $isMismatch) {
+            return false;
+        }
+
+        if (app()->isProduction()) {
+            Log::critical('M-Pesa callback amount mismatch in production.', [
+                'callback_id' => $callbackRecord->id,
+                'expected_amount_cents' => $callbackRecord->amount,
+                'callback_amount' => $callbackAmountInt,
+            ]);
+
+            $callbackRecord->update([
+                'result_code' => 1,
+                'processed_at' => now(),
+                'response_description' => $description,
+                'callback_payload' => $payload,
+                'status' => 'failed',
+            ]);
+
+            return true;
+        }
+
+        Log::warning('M-Pesa callback amount mismatch (sandbox): callback amount differs from expected.', [
+            'callback_id' => $callbackRecord->id,
+            'expected_amount_cents' => $callbackRecord->amount,
+            'callback_amount' => $callbackAmountInt,
+        ]);
+
+        return false;
     }
 
     public function createSellerReceivableAccount(Seller $seller): Account
@@ -104,10 +171,10 @@ class WalletService
     {
         $callbackRecord = CallbackIdempotency::where('checkout_request_id', $checkoutRequestId)->first();
 
-        if (! $callbackRecord) {
+        if (! $callbackRecord || ! $callbackRecord->user_id) {
             return null;
         }
 
-        return null;
+        return User::find($callbackRecord->user_id);
     }
 }

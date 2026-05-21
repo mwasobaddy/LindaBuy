@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminActivityController;
+use App\Http\Controllers\Api\Admin\AdminCallbackController;
 use App\Http\Controllers\Api\Admin\AdminOrderController;
+use App\Http\Controllers\Api\Admin\AdminSettingsController;
 use App\Http\Controllers\Api\Admin\AdminWithdrawalController;
 use App\Http\Controllers\Api\AgentController;
 use App\Http\Controllers\Api\ChatController;
@@ -69,7 +72,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Admin routes
-    Route::prefix('admin')->middleware(['admin'])->group(function () {
+    Route::prefix('admin')->middleware(['admin', 'audit'])->group(function () {
         // Sellers
         Route::get('/sellers/pending', [SellerController::class, 'pendingSellers']);
         Route::get('/sellers', [SellerController::class, 'allSellers']);
@@ -98,10 +101,37 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('orders/{order}/auto-release', [AdminOrderController::class, 'setAutoRelease']);
         Route::get('g4s-pending-release', [AdminOrderController::class, 'g4sPendingRelease']);
         Route::get('orders/{order}/g4s-details', [AdminOrderController::class, 'g4sDetails']);
+
+        // Failed reversals
+        Route::get('failed-reversals', [AdminOrderController::class, 'failedReversals'])->name('failed-reversals');
+        Route::post('orders/{order}/retry-reversal', [AdminOrderController::class, 'retryReversal'])->name('retry-reversal');
+        Route::post('orders/{order}/resolve-reversal', [AdminOrderController::class, 'resolveReversal'])->name('resolve-reversal');
+
+        // Activity logs
+        Route::get('activity-logs', [AdminActivityController::class, 'index'])->name('activity-logs');
+        Route::get('activity-summary', [AdminActivityController::class, 'summary'])->name('activity-summary');
+
+        // Callback monitoring
+        Route::get('callbacks', [AdminCallbackController::class, 'index'])->name('callbacks.index');
+        Route::get('callbacks/{callback}', [AdminCallbackController::class, 'show'])->name('callbacks.show');
+        Route::post('callbacks/{callback}/retry', [AdminCallbackController::class, 'retry'])->name('callbacks.retry');
+
+        // Settings
+        Route::get('settings', [AdminSettingsController::class, 'index'])->name('settings.index');
+        Route::put('settings/{key}', [AdminSettingsController::class, 'update'])->name('settings.update');
+        Route::get('fee-preview/{amount}', [AdminSettingsController::class, 'feePreview'])->name('fee-preview');
     });
 });
 
-// M-Pesa callback (no auth — IP allowlist)
+// M-Pesa callbacks (no auth — IP allowlist)
 Route::post('wallet/callback', [WalletController::class, 'callback'])
     ->middleware('mpesa-ip')
     ->name('wallet.callback');
+
+Route::post('wallet/reversal-result', [WalletController::class, 'reversalResult'])
+    ->middleware('mpesa-ip')
+    ->name('wallet.reversal-result');
+
+Route::post('wallet/reversal-timeout', [WalletController::class, 'reversalTimeout'])
+    ->middleware('mpesa-ip')
+    ->name('wallet.reversal-timeout');

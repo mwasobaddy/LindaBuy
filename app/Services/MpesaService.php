@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\Response;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class MpesaService
 {
@@ -123,8 +125,8 @@ class MpesaService
                     'Amount' => $amount,
                     'ReceiverParty' => $this->businessShortCode,
                     'RecieverIdentifierType' => '11',
-                    'ResultURL' => $this->callbackUrl.'/reversal',
-                    'QueueTimeOutURL' => $this->callbackUrl.'/timeout',
+                    'ResultURL' => $this->callbackUrl.'/reversal-result',
+                    'QueueTimeOutURL' => $this->callbackUrl.'/reversal-timeout',
                     'Remarks' => $description ?: 'Reversal',
                     'Occasion' => '',
                 ]);
@@ -133,13 +135,88 @@ class MpesaService
         return $response->json();
     }
 
-    public function validateCallback(array $payload): bool
+    public function validateCallback(array $payload, ?Request $request = null): bool
     {
-        if ($this->environment !== 'production') {
+        $secret = config('mpesa.callback_hmac_secret');
+
+        if ($this->environment !== 'production' && blank($secret)) {
             return true;
         }
 
+        if (blank($secret)) {
+            Log::error('M-Pesa callback HMAC secret is not configured in production.');
+
+            return false;
+        }
+
+        if (empty($payload)) {
+            Log::warning('M-Pesa callback validation failed: empty payload.');
+
+            return false;
+        }
+
+        $signature = null;
+
+        if ($request !== null && $request->hasHeader('X-Mpesa-Signature')) {
+            $signature = $request->header('X-Mpesa-Signature');
+        }
+
+        if ($signature === null && isset($payload['Body']['stkCallback']['Signature'])) {
+            $signature = $payload['Body']['stkCallback']['Signature'];
+        }
+
+        if ($signature === null && isset($payload['Result']['Signature'])) {
+            $signature = $payload['Result']['Signature'];
+        }
+
+        if ($signature === null) {
+            Log::warning('M-Pesa callback validation failed: no signature found in request.');
+
+            return false;
+        }
+
+        $payloadForHash = $payload;
+
+        if (isset($payloadForHash['Body']['stkCallback'])) {
+            unset($payloadForHash['Body']['stkCallback']['Signature']);
+        }
+
+        if (isset($payloadForHash['Result'])) {
+            unset($payloadForHash['Result']['Signature']);
+        }
+
+        $expected = hash_hmac('sha256', json_encode($payloadForHash), $secret);
+
+        if (! hash_equals($expected, $signature)) {
+            Log::warning('M-Pesa callback validation failed: HMAC signature mismatch.');
+
+            return false;
+        }
+
         return true;
+    }
+
+    public function parseReversalResult(array $payload): array
+    {
+        $result = $payload['Result'] ?? [];
+
+        return [
+            'result_code' => $result['ResultCode'] ?? null,
+            'result_desc' => $result['ResultDesc'] ?? '',
+            'transaction_id' => $result['TransactionID'] ?? null,
+            'amount' => $result['Amount'] ?? null,
+        ];
+    }
+
+    public function parseReversalTimeout(array $payload): array
+    {
+        $result = $payload['Result'] ?? [];
+
+        return [
+            'result_code' => $result['ResultCode'] ?? null,
+            'result_desc' => $result['ResultDesc'] ?? '',
+            'transaction_id' => $result['TransactionID'] ?? null,
+        ];
     }
 
     public function parseCallback(array $payload): array
