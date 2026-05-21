@@ -11,6 +11,7 @@ use App\Http\Responses\Api\OrderReleaseTokenResponse;
 use App\Http\Responses\Api\SuccessResponse;
 use App\Models\Order;
 use App\Models\OrderIssueReport;
+use App\Services\AuditService;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +19,8 @@ use Illuminate\Validation\ValidationException;
 class OrderController extends Controller
 {
     public function __construct(
-        protected OrderService $orderService
+        protected OrderService $orderService,
+        protected AuditService $auditService,
     ) {}
 
     public function myOrders(Request $request)
@@ -72,6 +74,18 @@ class OrderController extends Controller
                 $validated
             );
 
+            $this->auditService->log(
+                action: 'order.created',
+                entity: 'order',
+                entityId: $order->id,
+                details: [
+                    'price' => $order->price,
+                    'delivery_type' => $order->delivery_type,
+                    'initiator_type' => 'seller',
+                ],
+                request: $request,
+            );
+
             return app(OrderCreatedResponse::class, [
                 'order' => $order->load(['seller', 'buyer']),
                 'message' => 'Order created successfully',
@@ -97,6 +111,18 @@ class OrderController extends Controller
                 $validated
             );
 
+            $this->auditService->log(
+                action: 'order.created',
+                entity: 'order',
+                entityId: $result['order']->id,
+                details: [
+                    'price' => $result['order']->price,
+                    'delivery_type' => $result['order']->delivery_type,
+                    'initiator_type' => 'buyer',
+                ],
+                request: $request,
+            );
+
             return app(OrderCreatedResponse::class, [
                 'order' => $result['order']->load(['seller', 'buyer']),
                 'message' => 'Order created. Processing payment...',
@@ -116,6 +142,14 @@ class OrderController extends Controller
         try {
             $updatedOrder = $this->orderService->acceptOrder($order, $request->user());
 
+            $this->auditService->log(
+                action: 'order.accepted',
+                entity: 'order',
+                entityId: $order->id,
+                details: ['initiator_type' => $order->initiator_type],
+                request: $request,
+            );
+
             return app(SuccessResponse::class, [
                 'data' => $updatedOrder->load(['seller', 'buyer']),
                 'message' => 'Order accepted successfully',
@@ -134,6 +168,14 @@ class OrderController extends Controller
         try {
             $this->orderService->declineOrder($order, $request->user(), $validated['reason']);
 
+            $this->auditService->log(
+                action: 'order.declined',
+                entity: 'order',
+                entityId: $order->id,
+                details: ['reason' => $validated['reason']],
+                request: $request,
+            );
+
             return app(SuccessResponse::class, [
                 'data' => $order->fresh()->load(['seller', 'buyer']),
                 'message' => 'Order declined',
@@ -147,6 +189,13 @@ class OrderController extends Controller
     {
         try {
             $this->orderService->confirmDelivery($order, $request->user());
+
+            $this->auditService->log(
+                action: 'order.delivery_confirmed',
+                entity: 'order',
+                entityId: $order->id,
+                request: $request,
+            );
 
             return app(SuccessResponse::class, [
                 'data' => $order->fresh()->load(['seller', 'buyer']),
@@ -190,6 +239,14 @@ class OrderController extends Controller
                 $order,
                 $request->user(),
                 $validated['confirmation_token']
+            );
+
+            $this->auditService->log(
+                action: 'order.released',
+                entity: 'order',
+                entityId: $order->id,
+                details: ['amount' => $order->price],
+                request: $request,
             );
 
             return app(SuccessResponse::class, [
@@ -248,6 +305,14 @@ class OrderController extends Controller
         try {
             $this->orderService->acceptJob($order, $agent);
 
+            $this->auditService->log(
+                action: 'order.job_accepted',
+                entity: 'order',
+                entityId: $order->id,
+                details: ['agent_id' => $agent->id],
+                request: $request,
+            );
+
             return app(SuccessResponse::class, [
                 'data' => $order->fresh()->load(['seller']),
                 'message' => 'Job accepted successfully',
@@ -274,6 +339,18 @@ class OrderController extends Controller
 
         try {
             $this->orderService->verifyAndHandover($order, $agent, $validated);
+
+            $this->auditService->log(
+                action: 'order.verified',
+                entity: 'order',
+                entityId: $order->id,
+                details: [
+                    'delivery_type' => $order->delivery_type,
+                    'carrier_name' => $validated['carrier_name'] ?? null,
+                    'g4s_branch' => $validated['g4s_branch'] ?? null,
+                ],
+                request: $request,
+            );
 
             return app(SuccessResponse::class, [
                 'data' => $order->fresh()->load(['seller', 'buyer', 'agent']),
@@ -305,6 +382,17 @@ class OrderController extends Controller
             'status' => 'REPORTED',
             'reported_at' => now(),
         ]);
+
+        $this->auditService->log(
+            action: 'order.issue_reported',
+            entity: 'order',
+            entityId: $order->id,
+            details: [
+                'issue_type' => $validated['issue_type'],
+                'issue_report_id' => $issueReport->id,
+            ],
+            request: $request,
+        );
 
         return app(CreatedResponse::class, [
             'data' => $issueReport,
