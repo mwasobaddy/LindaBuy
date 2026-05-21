@@ -9,6 +9,8 @@ import {
     Users,
     Wallet,
     Banknote,
+    RefreshCw,
+    Settings,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -94,6 +96,26 @@ export function AppSidebar() {
                 title: 'Withdrawals',
                 href: '/admin/withdrawals',
                 icon: Banknote,
+            },
+            {
+                title: 'Callbacks',
+                href: '/admin/callbacks',
+                icon: RefreshCw,
+            },
+            {
+                title: 'Failed Reversals',
+                href: '/admin/failed-reversals',
+                icon: Banknote,
+            },
+            {
+                title: 'Activity Logs',
+                href: '/admin/activity-logs',
+                icon: FileText,
+            },
+            {
+                title: 'Settings',
+                href: '/admin/settings',
+                icon: Settings,
             }
         );
     }

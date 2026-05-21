@@ -38,6 +38,10 @@ declare module '@inertiajs/core' {
             orders?: unknown[];
             order?: unknown;
             templates?: unknown[];
+            failed_reversals?: unknown[];
+            initial_summary?: { action: string; count: number }[];
+            callbacks?: { data: unknown[]; meta?: unknown };
+            settings?: Record<string, string | number | boolean>;
             [key: string]: unknown;
         };
     }

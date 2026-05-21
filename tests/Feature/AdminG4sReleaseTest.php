@@ -5,6 +5,7 @@ use App\Models\Agent;
 use App\Models\Order;
 use App\Models\Seller;
 use App\Models\User;
+use App\Services\AuditService;
 use App\Services\OrderService;
 use Database\Seeders\AccountSeeder;
 use Database\Seeders\RoleAndPermissionSeeder;
@@ -156,7 +157,9 @@ test('admin can view G4S order details', function () {
     $response->assertJsonPath('data.g4s_tracking_ref', 'G4S-REF-001');
 });
 
-test('auto-release job fires and releases payment end-to-end', function () {
+test('auto-release job dispatches and releases payment after scheduled time', function () {
+    Queue::fake();
+
     $order = makeG4sOrder('verified', $this->buyerUser, $this->seller, $this->agent);
 
     $response = actingAs($this->adminUser)
@@ -167,25 +170,30 @@ test('auto-release job fires and releases payment end-to-end', function () {
     $response->assertOk();
     $order->refresh();
 
-    // With sync queue, the ReleaseG4sOrder job runs immediately
-    // and executes adminReleasePayment
-    expect($order->status)->toBe('released');
-    expect($order->auto_release_enabled)->toBeFalse();
-    expect($order->auto_release_at)->toBeNull();
+    expect($order->auto_release_enabled)->toBeTrue();
+    expect($order->auto_release_at)->not->toBeNull();
+
+    Queue::assertPushed(ReleaseG4sOrder::class);
 });
 
 test('auto-release is idempotent', function () {
     $order = makeG4sOrder('verified', $this->buyerUser, $this->seller, $this->agent);
 
-    $job1 = new ReleaseG4sOrder($order);
-    $job1->handle(app(OrderService::class));
+    $order->update([
+        'auto_release_enabled' => true,
+        'auto_release_at' => now()->subMinute(),
+    ]);
+
+    $job1 = new ReleaseG4sOrder($order->fresh());
+    $job1->handle(app(OrderService::class), app(AuditService::class));
 
     $order->refresh();
     expect($order->status)->toBe('released');
+    expect($order->auto_release_enabled)->toBeFalse();
 
-    // Second execution should do nothing
+    // Second execution should do nothing (guards prevent double-fire)
     $job2 = new ReleaseG4sOrder($order);
-    $job2->handle(app(OrderService::class));
+    $job2->handle(app(OrderService::class), app(AuditService::class));
 
     $order->refresh();
     expect($order->status)->toBe('released');

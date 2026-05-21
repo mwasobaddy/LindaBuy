@@ -5,7 +5,9 @@ use App\Http\Controllers\ChatPageController;
 use App\Models\Order;
 use App\Models\OrderTemplate;
 use App\Models\Withdrawal;
+use App\Services\AuditService;
 use App\Services\LedgerService;
+use App\Services\SettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -132,6 +134,38 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
             'withdrawals' => $withdrawals,
         ]);
     })->name('withdrawals');
+
+    // Failed reversals page
+    Route::get('failed-reversals', function (Request $request) {
+        $orders = Order::whereNotNull('reversal_failed_at')
+            ->whereNull('reversal_resolved_at')
+            ->with(['buyer', 'seller'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return Inertia::render('admin/failed-reversals/index', ['orders' => $orders]);
+    })->name('failed-reversals');
+
+    // Activity logs page
+    Route::get('activity-logs', function (Request $request) {
+        $summary = app(AuditService::class)->summary();
+
+        return Inertia::render('admin/activity-logs/index', [
+            'initial_summary' => $summary,
+        ]);
+    })->name('activity-logs');
+
+    // Callback monitoring page
+    Route::inertia('callbacks', 'admin/callbacks/index')->name('callbacks');
+
+    // Settings page
+    Route::get('settings', function (Request $request) {
+        $settings = app(SettingsService::class)->all();
+
+        return Inertia::render('admin/settings/index', [
+            'settings' => $settings,
+        ]);
+    })->name('settings');
 });
 
 Route::prefix('auth')->name('auth.')->group(function () {
