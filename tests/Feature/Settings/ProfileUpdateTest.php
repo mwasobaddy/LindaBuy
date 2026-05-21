@@ -29,21 +29,21 @@ test('profile information can be updated', function () {
     expect($user->refresh()->name)->toBe('Test User');
 });
 
-test('profile phone can be updated', function () {
-    $user = User::factory()->create(['mobile_verified_at' => now()]);
+test('phone_cannot_be_changed_via_web_profile', function () {
+    $user = User::factory()->create(['mobile_verified_at' => now(), 'phone' => '700000001']);
 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
             'name' => $user->name,
-            'phone' => '712345678',
+            'email' => $user->email,
         ]);
 
     $response
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('profile.edit'));
 
-    expect($user->refresh()->phone)->toBe('712345678');
+    expect($user->refresh()->phone)->toBe('700000001');
 });
 
 test('user can delete their account', function () {

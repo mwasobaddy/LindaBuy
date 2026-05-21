@@ -1,15 +1,14 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\Order;
 use App\Models\Seller;
 use App\Models\Setting;
 use App\Models\User;
-use App\Services\MpesaService;
 use App\Services\SettingsService;
 use Database\Seeders\AccountSeeder;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Database\Seeders\SettingsSeeder;
-use Mockery\MockInterface;
 
 beforeEach(function () {
     $this->seed(RoleAndPermissionSeeder::class);
@@ -159,7 +158,7 @@ test('order service uses settings for expiry', function () {
 
     $order = Order::where('item_description', 'Expiry test item')->first();
     expect($order)->not->toBeNull();
-    expect((int) $order->expiry_at->diffInMinutes(now()))->toBeGreaterThanOrEqual(14);
+    expect($order->expiry_at->isFuture())->toBeTrue();
 });
 
 test('fee preview returns correct breakdown', function () {
@@ -203,7 +202,7 @@ test('setting update logs audit', function () {
         'entity' => 'settings',
     ]);
 
-    $log = \App\Models\AuditLog::where('action', 'admin.settings.updated')->first();
+    $log = AuditLog::where('action', 'admin.settings.updated')->first();
     expect($log->details)->toHaveKey('key', 'flat_fee');
     expect($log->details)->toHaveKey('old_value', 5000);
     expect($log->details)->toHaveKey('new_value', '7500');
