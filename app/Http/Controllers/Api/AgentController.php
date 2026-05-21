@@ -116,6 +116,26 @@ class AgentController extends Controller
         ]);
     }
 
+    public function updateProfile(Request $request, Agent $agent)
+    {
+        if ($agent->user_id !== $request->user()->id) {
+            return app(ForbiddenResponse::class, ['message' => 'You can only update your own agent profile.']);
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $agent->user->update(['name' => $validated['name']]);
+
+        return app(SuccessResponse::class, [
+            'data' => [
+                'agent' => $agent->fresh()->load('user'),
+            ],
+            'message' => 'Agent profile updated.',
+        ]);
+    }
+
     public function show(Request $request)
     {
         $agent = $request->user()->agent;
