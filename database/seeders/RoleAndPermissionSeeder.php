@@ -61,6 +61,7 @@ class RoleAndPermissionSeeder extends Seeder
             'view-callbacks',
             'handle-callbacks',
             'manage-settings',
+            'manage-issues',
         ];
 
         // Create all permissions

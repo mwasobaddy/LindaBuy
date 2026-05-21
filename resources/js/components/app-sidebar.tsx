@@ -1,16 +1,17 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    AlertTriangle,
+    Banknote,
     BookOpen,
+    FileText,
     FolderGit2,
     LayoutGrid,
-    ShieldCheck,
-    ShoppingCart,
-    FileText,
-    Users,
-    Wallet,
-    Banknote,
     RefreshCw,
     Settings,
+    ShieldCheck,
+    ShoppingCart,
+    Users,
+    Wallet,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -55,6 +56,11 @@ export function AppSidebar() {
             title: 'Wallet',
             href: '/wallet',
             icon: Wallet,
+        },
+        {
+            title: 'Settings',
+            href: '/settings/profile',
+            icon: Settings,
         },
     ];
 
@@ -111,6 +117,11 @@ export function AppSidebar() {
                 title: 'Activity Logs',
                 href: '/admin/activity-logs',
                 icon: FileText,
+            },
+            {
+                title: 'Issue Reports',
+                href: '/admin/issue-reports',
+                icon: AlertTriangle,
             },
             {
                 title: 'Settings',
