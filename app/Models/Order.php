@@ -24,6 +24,9 @@ class Order extends Model
         'auto_release_at', 'auto_release_enabled',
         'release_confirmation_token', 'release_confirmation_expires_at',
         'reversal_failed_at', 'reversal_failure_reason',
+        'mpesa_transaction_id', 'reversal_attempts',
+        'reversal_retry_at', 'reversal_resolved_at',
+        'reversal_resolution_type',
         'initiator_type',
     ];
 
@@ -41,6 +44,9 @@ class Order extends Model
             'auto_release_enabled' => 'boolean',
             'release_confirmation_expires_at' => 'datetime',
             'reversal_failed_at' => 'datetime',
+            'reversal_attempts' => 'integer',
+            'reversal_retry_at' => 'datetime',
+            'reversal_resolved_at' => 'datetime',
             'delivery_location_coords' => 'array',
         ];
     }

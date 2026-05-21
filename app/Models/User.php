@@ -85,4 +85,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(ChatMessage::class, 'sender_id');
     }
+
+    /**
+     * Audit log entries associated with this user.
+     */
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(AuditLog::class);
+    }
 }
