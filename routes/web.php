@@ -158,6 +158,17 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // Callback monitoring page
     Route::inertia('callbacks', 'admin/callbacks/index')->name('callbacks');
 
+    // Orders page
+    Route::get('orders', function () {
+        return Inertia::render('admin/orders/index', [
+            'statuses' => [
+                'pending_accept', 'accepted', 'funds_locked', 'verified',
+                'in_transit', 'delivered', 'released', 'cancelled',
+                'expired', 'payment_failed', 'g4s_pickup_confirmed',
+            ],
+        ]);
+    })->name('admin.orders');
+
     // Issue reports page
     Route::get('issue-reports', function () {
         return Inertia::render('admin/issue-reports/index', [
