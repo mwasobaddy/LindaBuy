@@ -32,3 +32,7 @@ yarn-error.log
 spec.md
 /context/
 /docs/
+
+# Auto-generated skill cache (do not commit)
+.agents/skills/
+.claude/skills/
