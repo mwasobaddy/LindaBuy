@@ -1,4 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
+import { useState, useCallback } from 'react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { useState, useCallback } from 'react';
 
 interface AgentUser {
     id: number;
