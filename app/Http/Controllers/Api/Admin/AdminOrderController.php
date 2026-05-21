@@ -5,14 +5,19 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Responses\Api\ErrorResponse;
 use App\Http\Responses\Api\SuccessResponse;
+use App\Jobs\RetryReversal;
 use App\Models\Order;
+use App\Services\AuditService;
+use App\Services\LedgerService;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 
 class AdminOrderController extends Controller
 {
     public function __construct(
-        protected OrderService $orderService
+        protected OrderService $orderService,
+        protected LedgerService $ledgerService,
+        protected AuditService $auditService,
     ) {}
 
     public function index()
@@ -34,6 +39,14 @@ class AdminOrderController extends Controller
 
         $this->orderService->confirmG4sPickup($order, $request->tracking_ref);
 
+        $this->auditService->log(
+            action: 'admin.order.g4s_pickup_confirmed',
+            entity: 'order',
+            entityId: $order->id,
+            details: ['tracking_ref' => $request->tracking_ref],
+            request: $request,
+        );
+
         return app(SuccessResponse::class, [
             'data' => $order->fresh(),
             'message' => 'G4S pickup confirmed',
@@ -49,6 +62,14 @@ class AdminOrderController extends Controller
         ]);
 
         $this->orderService->setAutoRelease($order, (int) $request->release_hours);
+
+        $this->auditService->log(
+            action: 'admin.order.auto_release_scheduled',
+            entity: 'order',
+            entityId: $order->id,
+            details: ['release_hours' => (int) $request->release_hours],
+            request: $request,
+        );
 
         return app(SuccessResponse::class, [
             'data' => $order->fresh(),
@@ -71,6 +92,131 @@ class AdminOrderController extends Controller
             ->get();
 
         return app(SuccessResponse::class, ['data' => $orders]);
+    }
+
+    public function failedReversals(Request $request)
+    {
+        if (! $request->user()->hasPermissionTo('handle-failed-reversals')) {
+            abort(403);
+        }
+
+        $orders = Order::whereNotNull('reversal_failed_at')
+            ->whereNull('reversal_resolved_at')
+            ->with(['buyer', 'seller'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return app(SuccessResponse::class, ['data' => $orders]);
+    }
+
+    public function retryReversal(Order $order, Request $request)
+    {
+        if (! $request->user()->hasPermissionTo('handle-failed-reversals')) {
+            abort(403);
+        }
+
+        if ($order->reversal_failed_at === null || $order->reversal_resolved_at !== null) {
+            return app(ErrorResponse::class, [
+                'message' => 'Order does not have a failed reversal or is already resolved.',
+                'status' => 422,
+            ]);
+        }
+
+        if ($request->filled('mpesa_transaction_id')) {
+            $order->update(['mpesa_transaction_id' => $request->mpesa_transaction_id]);
+        }
+
+        if ($order->mpesa_transaction_id === null) {
+            return app(ErrorResponse::class, [
+                'message' => 'M-Pesa Transaction ID is required to retry reversal.',
+                'status' => 422,
+            ]);
+        }
+
+        RetryReversal::dispatch($order);
+
+        $this->auditService->log(
+            action: 'admin.order.reversal_retried',
+            entity: 'order',
+            entityId: $order->id,
+            details: ['mpesa_transaction_id' => $order->mpesa_transaction_id],
+            request: $request,
+        );
+
+        return app(SuccessResponse::class, [
+            'data' => $order->fresh(),
+            'message' => 'Reversal retry dispatched.',
+        ]);
+    }
+
+    public function resolveReversal(Order $order, Request $request)
+    {
+        if (! $request->user()->hasPermissionTo('handle-failed-reversals')) {
+            abort(403);
+        }
+
+        $request->validate([
+            'resolution_type' => 'required|in:force_release,write_off',
+        ]);
+
+        if ($order->reversal_failed_at === null || $order->reversal_resolved_at !== null) {
+            return app(ErrorResponse::class, [
+                'message' => 'Order does not have a failed reversal or is already resolved.',
+                'status' => 422,
+            ]);
+        }
+
+        if ($order->status !== 'funds_locked') {
+            return app(ErrorResponse::class, [
+                'message' => 'Order must be in funds_locked status to resolve reversal.',
+                'status' => 422,
+            ]);
+        }
+
+        if ($request->resolution_type === 'force_release') {
+            $this->ledgerService->recordEscrowRelease($order);
+
+            $order->update([
+                'status' => 'released',
+                'reversal_resolved_at' => now(),
+                'reversal_resolution_type' => 'force_release',
+            ]);
+
+            $this->auditService->log(
+                action: 'admin.order.reversal_resolved',
+                entity: 'order',
+                entityId: $order->id,
+                details: ['resolution_type' => 'force_release'],
+                request: $request,
+            );
+
+            return app(SuccessResponse::class, [
+                'data' => $order->fresh(),
+                'message' => 'Funds force-released to seller.',
+            ]);
+        }
+
+        // write_off
+        $this->ledgerService->recordWriteOff($order, $order->price);
+
+        $order->update([
+            'status' => 'cancelled',
+            'reversal_resolved_at' => now(),
+            'reversal_resolution_type' => 'write_off',
+        ]);
+
+        $this->auditService->log(
+            action: 'admin.order.reversal_resolved',
+            entity: 'order',
+            entityId: $order->id,
+            details: ['resolution_type' => 'write_off'],
+            request: $request,
+        );
+
+        return app(SuccessResponse::class, [
+            'data' => $order->fresh(),
+            'message' => 'Reversal written off as loss.',
+        ]);
     }
 
     public function g4sDetails(Order $order)

@@ -13,6 +13,7 @@ use App\Http\Responses\Api\ForbiddenResponse;
 use App\Http\Responses\Api\SuccessResponse;
 use App\Models\KycVerification;
 use App\Models\Seller;
+use App\Services\AuditService;
 use App\Services\KycUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,8 @@ use Illuminate\Support\Facades\DB;
 class SellerController extends Controller
 {
     public function __construct(
-        protected KycUploadService $kycUploadService
+        protected KycUploadService $kycUploadService,
+        protected AuditService $auditService,
     ) {}
 
     public function store(StoreSellerRequest $request)
@@ -149,7 +151,7 @@ class SellerController extends Controller
             return app(ErrorResponse::class, ['message' => 'KYC is not in pending status.', 'status' => 422]);
         }
 
-        return DB::transaction(function () use ($seller) {
+        return DB::transaction(function () use ($request, $seller) {
             $kyc = $seller->user->kycVerification;
             $kyc->update([
                 'kyc_status' => 'APPROVED',
@@ -157,6 +159,13 @@ class SellerController extends Controller
             ]);
 
             $this->checkAndAssignFullSellerApproval($seller);
+
+            $this->auditService->log(
+                action: 'admin.seller.kyc_approved',
+                entity: 'seller',
+                entityId: $seller->id,
+                request: $request,
+            );
 
             return app(SuccessResponse::class, ['message' => 'KYC approved successfully.']);
         });
@@ -178,6 +187,14 @@ class SellerController extends Controller
                 'rejected_at' => now(),
             ]);
 
+            $this->auditService->log(
+                action: 'admin.seller.kyc_rejected',
+                entity: 'seller',
+                entityId: $seller->id,
+                details: ['reason' => $request->rejection_reason],
+                request: $request,
+            );
+
             return app(SuccessResponse::class, ['message' => 'KYC rejected.']);
         });
     }
@@ -188,13 +205,20 @@ class SellerController extends Controller
             return app(ErrorResponse::class, ['message' => 'Shop is not in pending status.', 'status' => 422]);
         }
 
-        return DB::transaction(function () use ($seller) {
+        return DB::transaction(function () use ($request, $seller) {
             $seller->update([
                 'verification_status' => 'APPROVED',
                 'approved_at' => now(),
             ]);
 
             $this->checkAndAssignFullSellerApproval($seller);
+
+            $this->auditService->log(
+                action: 'admin.seller.shop_approved',
+                entity: 'seller',
+                entityId: $seller->id,
+                request: $request,
+            );
 
             return app(SuccessResponse::class, ['message' => 'Shop approved successfully.']);
         });
@@ -213,6 +237,14 @@ class SellerController extends Controller
                 'rejected_at' => now(),
             ]);
 
+            $this->auditService->log(
+                action: 'admin.seller.shop_rejected',
+                entity: 'seller',
+                entityId: $seller->id,
+                details: ['reason' => $request->rejection_reason],
+                request: $request,
+            );
+
             return app(SuccessResponse::class, ['message' => 'Shop rejected.']);
         });
     }
@@ -225,7 +257,7 @@ class SellerController extends Controller
             return app(ErrorResponse::class, ['message' => 'Only approved or rejected sellers can be toggled.', 'status' => 422]);
         }
 
-        return DB::transaction(function () use ($seller, $currentStatus) {
+        return DB::transaction(function () use ($request, $seller, $currentStatus) {
             $newStatus = $currentStatus === 'APPROVED' ? 'REJECTED' : 'APPROVED';
             $seller->update(['verification_status' => $newStatus]);
 
@@ -238,6 +270,14 @@ class SellerController extends Controller
                     $user->removeRole('seller');
                 }
             }
+
+            $this->auditService->log(
+                action: 'admin.seller.status_toggled',
+                entity: 'seller',
+                entityId: $seller->id,
+                details: ['new_status' => $newStatus],
+                request: $request,
+            );
 
             return app(SuccessResponse::class, ['message' => "Seller status toggled to {$newStatus}."]);
         });

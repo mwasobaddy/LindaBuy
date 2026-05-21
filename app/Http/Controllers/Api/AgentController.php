@@ -12,6 +12,7 @@ use App\Http\Responses\Api\NotFoundResponse;
 use App\Http\Responses\Api\SuccessResponse;
 use App\Models\Agent;
 use App\Models\KycVerification;
+use App\Services\AuditService;
 use App\Services\KycUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,8 @@ use Illuminate\Support\Facades\DB;
 class AgentController extends Controller
 {
     public function __construct(
-        protected KycUploadService $kycUploadService
+        protected KycUploadService $kycUploadService,
+        protected AuditService $auditService,
     ) {}
 
     public function store(StoreAgentRequest $request)
@@ -152,7 +154,7 @@ class AgentController extends Controller
             return app(ErrorResponse::class, ['message' => 'Agent KYC is not in pending status.', 'status' => 422]);
         }
 
-        return DB::transaction(function () use ($agent) {
+        return DB::transaction(function () use ($request, $agent) {
             $agent->update([
                 'kyc_status' => 'APPROVED',
                 'approved_at' => now(),
@@ -161,6 +163,13 @@ class AgentController extends Controller
             $user = $agent->user;
             $user->update(['role' => 'agent:approved']);
             $user->assignRole('agent');
+
+            $this->auditService->log(
+                action: 'admin.agent.approved',
+                entity: 'agent',
+                entityId: $agent->id,
+                request: $request,
+            );
 
             return app(SuccessResponse::class, ['message' => 'Agent approved successfully.']);
         });
@@ -179,6 +188,14 @@ class AgentController extends Controller
                 'rejected_at' => now(),
             ]);
 
+            $this->auditService->log(
+                action: 'admin.agent.rejected',
+                entity: 'agent',
+                entityId: $agent->id,
+                details: ['reason' => $request->rejection_reason],
+                request: $request,
+            );
+
             return app(SuccessResponse::class, ['message' => 'Agent rejected.']);
         });
     }
@@ -191,7 +208,7 @@ class AgentController extends Controller
             return app(ErrorResponse::class, ['message' => 'Only approved or rejected agents can be toggled.', 'status' => 422]);
         }
 
-        return DB::transaction(function () use ($agent, $currentStatus) {
+        return DB::transaction(function () use ($request, $agent, $currentStatus) {
             $newStatus = $currentStatus === 'APPROVED' ? 'REJECTED' : 'APPROVED';
             $agent->update(['kyc_status' => $newStatus]);
 
@@ -206,6 +223,14 @@ class AgentController extends Controller
                     $user->removeRole('agent');
                 }
             }
+
+            $this->auditService->log(
+                action: 'admin.agent.status_toggled',
+                entity: 'agent',
+                entityId: $agent->id,
+                details: ['new_status' => $newStatus],
+                request: $request,
+            );
 
             return app(SuccessResponse::class, ['message' => "Agent status toggled to {$newStatus}."]);
         });

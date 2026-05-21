@@ -9,6 +9,7 @@ use App\Models\Account;
 use App\Models\Entry;
 use App\Models\Transaction;
 use App\Models\Withdrawal;
+use App\Services\AuditService;
 use App\Services\LedgerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +17,8 @@ use Illuminate\Support\Facades\DB;
 class AdminWithdrawalController extends Controller
 {
     public function __construct(
-        protected LedgerService $ledgerService
+        protected LedgerService $ledgerService,
+        protected AuditService $auditService,
     ) {}
 
     public function index(Request $request)
@@ -41,6 +43,14 @@ class AdminWithdrawalController extends Controller
         $withdrawal->update([
             'status' => 'processing',
         ]);
+
+        $this->auditService->log(
+            action: 'admin.withdrawal.processed',
+            entity: 'withdrawal',
+            entityId: $withdrawal->id,
+            details: ['amount' => $withdrawal->amount, 'seller_id' => $withdrawal->seller_id],
+            request: $request,
+        );
 
         return app(SuccessResponse::class, [
             'data' => $withdrawal,
@@ -98,6 +108,14 @@ class AdminWithdrawalController extends Controller
                 'balance_after' => $mpesaPreviousBalance - $withdrawal->amount,
             ]);
 
+            $this->auditService->log(
+                action: 'admin.withdrawal.completed',
+                entity: 'withdrawal',
+                entityId: $withdrawal->id,
+                details: ['amount' => $withdrawal->amount, 'seller_id' => $withdrawal->seller_id],
+                request: request(),
+            );
+
             return app(SuccessResponse::class, [
                 'data' => $withdrawal,
                 'message' => 'Withdrawal completed.',
@@ -120,6 +138,18 @@ class AdminWithdrawalController extends Controller
             'failure_reason' => $validated['failure_reason'],
             'processed_at' => now(),
         ]);
+
+        $this->auditService->log(
+            action: 'admin.withdrawal.failed',
+            entity: 'withdrawal',
+            entityId: $withdrawal->id,
+            details: [
+                'amount' => $withdrawal->amount,
+                'seller_id' => $withdrawal->seller_id,
+                'reason' => $validated['failure_reason'],
+            ],
+            request: $request,
+        );
 
         return app(SuccessResponse::class, [
             'data' => $withdrawal,

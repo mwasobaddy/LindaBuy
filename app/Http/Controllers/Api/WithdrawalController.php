@@ -8,13 +8,15 @@ use App\Http\Responses\Api\ErrorResponse;
 use App\Http\Responses\Api\ForbiddenResponse;
 use App\Http\Responses\Api\SuccessResponse;
 use App\Models\Withdrawal;
+use App\Services\AuditService;
 use App\Services\LedgerService;
 use Illuminate\Http\Request;
 
 class WithdrawalController extends Controller
 {
     public function __construct(
-        protected LedgerService $ledgerService
+        protected LedgerService $ledgerService,
+        protected AuditService $auditService,
     ) {}
 
     public function request(Request $request)
@@ -48,6 +50,14 @@ class WithdrawalController extends Controller
             'status' => 'pending',
             'requested_at' => now(),
         ]);
+
+        $this->auditService->log(
+            action: 'withdrawal.requested',
+            entity: 'withdrawal',
+            entityId: $withdrawal->id,
+            details: ['amount' => $validated['amount_cents'], 'seller_id' => $seller->id],
+            request: $request,
+        );
 
         return app(CreatedResponse::class, [
             'data' => $withdrawal,
