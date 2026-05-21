@@ -42,6 +42,8 @@ declare module '@inertiajs/core' {
             initial_summary?: { action: string; count: number }[];
             callbacks?: { data: unknown[]; meta?: unknown };
             settings?: Record<string, string | number | boolean>;
+            statuses?: string[];
+            issue_types?: string[];
             [key: string]: unknown;
         };
     }
