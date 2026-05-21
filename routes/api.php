@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\AdminActivityController;
 use App\Http\Controllers\Api\Admin\AdminCallbackController;
+use App\Http\Controllers\Api\Admin\AdminIssueController;
 use App\Http\Controllers\Api\Admin\AdminOrderController;
 use App\Http\Controllers\Api\Admin\AdminSettingsController;
 use App\Http\Controllers\Api\Admin\AdminWithdrawalController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Api\AgentController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\OrderTemplateController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SellerController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\WithdrawalController;
@@ -23,7 +25,11 @@ Route::middleware(['auth'])->group(function () {
     // Agent routes
     Route::post('/agents/request', [AgentController::class, 'store']);
     Route::patch('/agents/{agent}/update-kyc', [AgentController::class, 'updateKyc']);
+    Route::patch('/agents/{agent}/update-profile', [AgentController::class, 'updateProfile']);
     Route::get('/agents/me', [AgentController::class, 'show']);
+
+    // Profile
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('api.profile.update');
 
     // Wallet (authenticated)
     Route::prefix('wallet')->name('wallet.')->group(function () {
@@ -115,6 +121,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('callbacks', [AdminCallbackController::class, 'index'])->name('callbacks.index');
         Route::get('callbacks/{callback}', [AdminCallbackController::class, 'show'])->name('callbacks.show');
         Route::post('callbacks/{callback}/retry', [AdminCallbackController::class, 'retry'])->name('callbacks.retry');
+
+        // Issue reports
+        Route::get('issue-reports', [AdminIssueController::class, 'index'])->name('issue-reports.index');
+        Route::patch('issue-reports/{issueReport}/resolve', [AdminIssueController::class, 'resolve'])->name('issue-reports.resolve');
+        Route::patch('issue-reports/{issueReport}/dismiss', [AdminIssueController::class, 'dismiss'])->name('issue-reports.dismiss');
+
+        // Agent assignment
+        Route::patch('orders/{order}/assign-agent', [AdminOrderController::class, 'assignAgent'])->name('orders.assign-agent');
+        Route::patch('orders/{order}/remove-agent', [AdminOrderController::class, 'removeAgent'])->name('orders.remove-agent');
 
         // Settings
         Route::get('settings', [AdminSettingsController::class, 'index'])->name('settings.index');
