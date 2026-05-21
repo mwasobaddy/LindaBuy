@@ -21,11 +21,23 @@ class AdminOrderController extends Controller
         protected AuditService $auditService,
     ) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        $orders = Order::with(['buyer', 'seller', 'agent'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $query = Order::with(['buyer', 'seller.user', 'agent.user'])
+            ->orderBy('created_at', 'desc');
+
+        $query->when($request->status, fn ($q, $v) => $q->where('status', $v));
+        $query->when($request->delivery_type, fn ($q, $v) => $q->where('delivery_type', $v));
+        $query->when($request->search, fn ($q, $v) => $q->where(function ($q) use ($v) {
+            $q->where('id', $v)
+                ->orWhere('item_description', 'like', "%{$v}%")
+                ->orWhereHas('buyer', fn ($q) => $q->where('name', 'like', "%{$v}%"))
+                ->orWhereHas('seller.user', fn ($q) => $q->where('name', 'like', "%{$v}%"));
+        }));
+        $query->when($request->date_from, fn ($q, $v) => $q->whereDate('created_at', '>=', $v));
+        $query->when($request->date_to, fn ($q, $v) => $q->whereDate('created_at', '<=', $v));
+
+        $orders = $query->paginate(20);
 
         return app(SuccessResponse::class, ['data' => $orders]);
     }
