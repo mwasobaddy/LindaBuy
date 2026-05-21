@@ -17,7 +17,8 @@ class OrderService
 {
     public function __construct(
         protected LedgerService $ledgerService,
-        protected MpesaService $mpesaService
+        protected MpesaService $mpesaService,
+        protected SettingsService $settingsService
     ) {}
 
     public function createSellerInitiatedOrder(User $user, array $data): Order
@@ -50,8 +51,8 @@ class OrderService
             ]);
         }
 
-        $flatFee = (int) config('orders.flat_fee', 5000);
-        $expiryMinutes = (int) config('orders.expiry_minutes', 5);
+        $flatFee = (int) $this->settingsService->get('flat_fee', 5000);
+        $expiryMinutes = (int) $this->settingsService->get('expiry_minutes', 5);
 
         $order = Order::create([
             'buyer_id' => $buyer->id,
@@ -93,9 +94,9 @@ class OrderService
             ]);
         }
 
-        $flatFee = (int) config('orders.flat_fee', 5000);
-        $expiryMinutes = (int) config('orders.expiry_minutes', 5);
-        $paymentExpiryMinutes = (int) config('orders.payment_expiry_minutes', 2);
+        $flatFee = (int) $this->settingsService->get('flat_fee', 5000);
+        $expiryMinutes = (int) $this->settingsService->get('expiry_minutes', 5);
+        $paymentExpiryMinutes = (int) $this->settingsService->get('payment_expiry_minutes', 2);
 
         $order = Order::create([
             'buyer_id' => $user->id,

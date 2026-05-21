@@ -243,6 +243,55 @@ class LedgerService
         });
     }
 
+    public function recordWriteOff(Order $order, int $amountCents): Transaction
+    {
+        return DB::transaction(function () use ($order, $amountCents) {
+            $escrowHolding = Account::where('account_code', 'ESCROW_HOLDING')
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $reversalLoss = Account::where('account_code', 'REVERSAL_LOSS')
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $transaction = Transaction::create([
+                'transaction_type' => 'write_off',
+                'reference_type' => 'order',
+                'reference_id' => $order->id,
+                'description' => 'Write off for order #'.$order->id,
+                'status' => 'completed',
+            ]);
+
+            $lastEscrowEntry = Entry::where('account_id', $escrowHolding->id)
+                ->orderBy('id', 'desc')
+                ->first();
+            $escrowPreviousBalance = $lastEscrowEntry ? $lastEscrowEntry->balance_after : 0;
+
+            $lastLossEntry = Entry::where('account_id', $reversalLoss->id)
+                ->orderBy('id', 'desc')
+                ->first();
+            $lossPreviousBalance = $lastLossEntry ? $lastLossEntry->balance_after : 0;
+
+            Entry::create([
+                'transaction_id' => $transaction->id,
+                'account_id' => $reversalLoss->id,
+                'debit_amount' => $amountCents,
+                'credit_amount' => 0,
+                'balance_after' => $lossPreviousBalance + $amountCents,
+            ]);
+
+            Entry::create([
+                'transaction_id' => $transaction->id,
+                'account_id' => $escrowHolding->id,
+                'debit_amount' => $amountCents,
+                'credit_amount' => 0,
+                'balance_after' => $escrowPreviousBalance - $amountCents,
+            ]);
+
+            return $transaction;
+        });
+    }
+
     public function recordReversal(Order $order, int $amountCents): Transaction
     {
         return DB::transaction(function () use ($order, $amountCents) {

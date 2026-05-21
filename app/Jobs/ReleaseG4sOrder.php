@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Order;
+use App\Services\AuditService;
 use App\Services\OrderService;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -22,7 +23,7 @@ class ReleaseG4sOrder implements ShouldBeUniqueUntilProcessing, ShouldQueue
         return 'order_'.$this->order->id;
     }
 
-    public function handle(OrderService $orderService): void
+    public function handle(OrderService $orderService, AuditService $auditService): void
     {
         $this->order->refresh();
 
@@ -53,6 +54,13 @@ class ReleaseG4sOrder implements ShouldBeUniqueUntilProcessing, ShouldQueue
         }
 
         $orderService->adminReleasePayment($this->order);
+
+        $auditService->log(
+            action: 'order.g4s_auto_released',
+            entity: 'order',
+            entityId: $this->order->id,
+            details: ['amount' => $this->order->price],
+        );
 
         Log::info('G4S auto-release executed successfully', [
             'order_id' => $this->order->id,
